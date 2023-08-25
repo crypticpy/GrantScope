@@ -1,2 +1,3 @@
 # GrantScope
-A collection of API calls for searching grant databases
+A collection of Notebooks for analyzing results from searching grant databases
+Currently focused on the candid API
