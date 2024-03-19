@@ -171,7 +171,13 @@ elif selected_chart == "Top Grant Description Words by USD Cluster":
                                        key='wordcloud_clusters')
 
     stopwords = set(STOPWORDS)
-    stopwords.update(['public', 'Public', 'health', 'Health'])
+    additional_stopwords = {'public', 'Public', 'health', 'Health', 'and', 'And', 'to', 'To', 'of', 'Of', 'the', 'The',
+                            'a', 'A', 'by', 'By', 'in', 'In', 'for', 'For', 'with', 'With', 'on', 'On', 'is', 'Is',
+                            'that', 'That', 'are', 'Are', 'as', 'As', 'be', 'Be', 'this', 'This', 'will', 'Will', 'at',
+                            'At', 'from', 'From', 'or', 'Or', 'an', 'An', 'which', 'Which', 'have', 'Have', 'it', 'It',
+                            'not', 'Not', 'who', 'Who', 'their', 'Their', 'we', 'We', 'support', 'Support', 'project',
+                            'Project'}
+    stopwords.update(additional_stopwords)
 
     for cluster in selected_clusters:
         top_grants = grouped_df[grouped_df['amount_usd_cluster'] == cluster].nlargest(20, 'amount_usd')
@@ -185,7 +191,8 @@ elif selected_chart == "Top Grant Description Words by USD Cluster":
         ax.set_title(f'Word Cloud of Grant Descriptions for {cluster} Cluster')
         st.pyplot(fig)
 
-        word_freq = pd.Series(text.split()).value_counts()
+        words = [word for word in text.split() if word.lower() not in stopwords]
+        word_freq = pd.Series(words).value_counts()
         st.write(f"Top Words for {cluster} Cluster:")
         st.write(word_freq.head(20))
 
