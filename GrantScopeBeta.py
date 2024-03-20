@@ -202,21 +202,21 @@ df, grouped_df = preprocess_data(grants)
 chart_options = {
     "Grant Analyst/Writer": [
         "Data Summary",
-        "Grant Amount Distribution by USD Cluster",
-        "Grant Amount vs Year Scatter Plot",
-        "Grant Amount by Population and Strategy Heatmap",
-        "Top Grant Description Words by USD Cluster",
-        "Treemaps of Grant Amount by Subject, Population and Strategy",
+        "Grant Amount Distribution",
+        "Grant Amount Scatter Plot",
+        "Grant Amount Heatmap",
+        "Grant Description Word Clouds",
+        "Treemaps by Subject, Population and Strategy",
         "Univariate Analysis of Numeric Columns",
         "Top Categories by Unique Grant Count"
     ],
     "Normal Grant User": [
         "Data Summary",
-        "Grant Amount Distribution by USD Cluster",
-        "Grant Amount vs Year Scatter Plot",
-        "Grant Amount by Population and Strategy Heatmap",
-        "Top Grant Description Words by USD Cluster",
-        "Treemaps of Grant Amount by Subject, Population and Strategy"
+        "Grant Amount Distribution",
+        "Grant Amount Scatter Plot",
+        "Grant Amount Heatmap",
+        "Grant Description Word Clouds",
+        "Treemaps by Subject, Population and Strategy"
     ]
 }
 
@@ -295,9 +295,9 @@ if selected_chart == "Data Summary":
         st.write(funder_type_dist)
 # Grant Amount Distribution by USD Cluster
 # This section of the code is executed if the user selects "Grant Amount Distribution by USD Cluster" from the chart options.
-elif selected_chart == "Grant Amount Distribution by USD Cluster":
+elif selected_chart == "Grant Amount Distribution":
     # Set the header of the Streamlit page to "Grant Amount Distribution by USD Cluster"
-    st.header("Grant Amount Distribution by USD Cluster")
+    st.header("Grant Amount Distribution")
 
     # Get a list of unique values in the 'amount_usd_cluster' column of the grouped_df DataFrame
     cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
@@ -406,8 +406,8 @@ elif selected_chart == "Grant Amount Distribution by USD Cluster":
 
 
 # Grant Amount vs Year Scatter Plot
-elif selected_chart == "Grant Amount vs Year Scatter Plot":
-    st.header("Grant Amount vs Year Scatter Plot")
+elif selected_chart == "Grant Amount Scatter Plot":
+    st.header("Grant Amount Scatter Plot")
 
     # Get the unique years from the data
     unique_years = sorted(df['year_issued'].unique())
@@ -487,9 +487,9 @@ elif selected_chart == "Grant Amount vs Year Scatter Plot":
 
 # Grant Amount by Population and Strategy Heatmap
 # This section of the code is executed if the user selects "Grant Amount by Population and Strategy Heatmap" from the chart options.
-elif selected_chart == "Grant Amount by Population and Strategy Heatmap":
+elif selected_chart == "Grant Amount Heatmap":
     # Set the header of the Streamlit page to "Grant Amount by Population and Strategy Heatmap"
-    st.header("Grant Amount by Population and Strategy Heatmap")
+    st.header("Grant Amount Heatmap")
 
     # Create a select box in Streamlit for the user to select the first dimension for the heatmap
     # The options are 'grant_subject_tran', 'grant_population_tran', and 'grant_strategy_tran'
@@ -582,9 +582,9 @@ elif selected_chart == "Grant Amount by Population and Strategy Heatmap":
 # Top Grant Description Words by USD Cluster
 # This section of the code is executed if the user selects
 # "Top Grant Description Words by USD Cluster" from the chart options.
-elif selected_chart == "Top Grant Description Words by USD Cluster":
+elif selected_chart == "Grant Description Word Clouds":
     # Set the header of the Streamlit page to "Top Grant Description Words by USD Cluster"
-    st.header("Top Grant Description Words by USD Cluster")
+    st.header("Grant Description Word Clouds")
 
     # Get a list of unique values in the 'amount_usd_cluster' column of the grouped_df DataFrame
     cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
@@ -656,9 +656,9 @@ elif selected_chart == "Top Grant Description Words by USD Cluster":
 
 # Treemaps of Grant Amount by Subject, Population and Strategy
 # This section of the code is executed if the user selects "Treemaps of Grant Amount by Subject, Population and Strategy" from the chart options.
-elif selected_chart == "Treemaps of Grant Amount by Subject, Population and Strategy":
+elif selected_chart == "Treemaps by Subject, Population and Strategy":
     # Set the header of the Streamlit page to "Treemaps of Grant Amount by Subject, Population and Strategy"
-    st.header("Treemaps of Grant Amount by Subject, Population and Strategy")
+    st.header("Treemaps by Subject, Population and Strategy")
 
     # Create a radio button selection in Streamlit for the user to select a variable for the treemap.
     # The options are 'grant_strategy_tran', 'grant_subject_tran', and 'grant_population_tran'.
@@ -684,7 +684,7 @@ elif selected_chart == "Treemaps of Grant Amount by Subject, Population and Stra
         # Check if the user has checked the checkbox to show grants for the selected block in 'analyze_column'
         # The checkbox label is dynamically generated based on 'analyze_column'
         # The key for the checkbox is a combination of the current label and 'analyze_column'
-        if st.checkbox(f"Show Grants for Selected {analyze_column} Block", key=f"{label}_{analyze_column}"):
+        if st.checkbox(f"Show Grant Breakdown for {analyze_column} Blocks", key=f"{label}_{analyze_column}"):
             # If the checkbox is checked, create a select box for the user to select a block
             # The options for the select box are the unique values in the 'analyze_column' of the grouped_data DataFrame
             selected_block = st.selectbox(f"Select {analyze_column} Block", options=grouped_data[analyze_column])
@@ -697,6 +697,7 @@ elif selected_chart == "Treemaps of Grant Amount by Subject, Population and Stra
                 # For each row, write the grant key and grant description to the Streamlit page
                 st.write(f"- Grant Key: {row['grant_key']}")
                 st.write(f"  Description: {row['grant_description']}")
+                st.write(f"  Amount (USD): {row['amount_usd']}")
                 # Write a separator line to the Streamlit page
                 st.write("---")
 
