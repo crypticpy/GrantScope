@@ -1,4 +1,4 @@
-# Grant Analysis Dashboard
+# Grant Scope the Grant Analysis Dashboard
 
 The Grant Analysis Dashboard is a powerful tool designed to help grant analysts and writers explore and analyze grant data effectively. By leveraging the capabilities of this dashboard, users can gain valuable insights into funding opportunities, identify trends, and make informed decisions when writing grant proposals or seeking funding sources.
 
