@@ -1,4 +1,4 @@
-# Grant Scope the Grant Analysis Dashboard
+# GrantScope the Grant Analysis Dashboard
 
 The GrantScope is a powerful tool designed to help grant analysts and writers explore and analyze grant data effectively. By leveraging the capabilities of this dashboard utility, users can gain valuable insights into funding opportunities, identify trends, and make informed decisions when writing grant proposals or seeking funding sources.
 
@@ -51,5 +51,5 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ---
 
-We hope that the Grant Analysis Dashboard empowers grant analysts and writers to uncover valuable insights, identify potential funding opportunities, and crafting compelling grant proposals. Happy exploring and grant writing!
+We hope that GrantScope empowers grant analysts and writers to uncover valuable insights, identify potential funding opportunities, and crafting compelling grant proposals. Happy exploring and grant writing!
 
