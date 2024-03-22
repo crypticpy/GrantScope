@@ -251,8 +251,7 @@ if selected_chart == "Data Summary":
     Welcome to the GrantScope Tool! This powerful application is designed to assist grant writers and analysts in navigating and extracting insights from a comprehensive grant dataset. By leveraging the capabilities of this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information to enhance your grant proposals.
 
     The preloaded dataset encompasses a wide range of information, including details about funders, recipients, grant amounts, subject areas, populations served, and more. With this tool, you can explore the data through interactive visualizations, filter and search for specific grants, and download relevant data for further analysis.
-
-    Let's dive in and uncover the wealth of knowledge hidden within this grant dataset!
+    
     """)
 
     st.subheader("Dataset Overview")
@@ -304,9 +303,9 @@ if selected_chart == "Data Summary":
     st.plotly_chart(fig)
 
     st.write("""
-    This is just a glimpse of the insights you can uncover using the Grant Explorer Tool. Feel free to explore the other sections of the application to dive deeper into specific aspects of the grant data, such as analyzing trends over time, examining geographic distributions, or searching for grants based on keywords.
+    This page serves as a glimpse into insights you can uncover using GrantScope. Feel free to explore the other pages of the application by using the menu on the left. From there you can dive deeper into specific aspects of the grant data, such as analyzing trends over time or examining population distributions.
 
-    Happy exploring and best of luck with your grant writing endeavors!
+    Happy exploring and best of luck with your grant related endeavors!
     """)
 # Grant Amount Distribution by USD Cluster
 elif selected_chart == "Grant Amount Distribution":
