@@ -20,7 +20,7 @@ uploaded_file = None
 @dataclass
 class Grant:
     """
-    A data class that represents a Grant.
+    A data class that represents a Grant from the Candid API.
 
     Attributes:
     funder_key (str): The unique identifier for the funder.
