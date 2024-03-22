@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
 from textwrap import shorten
 import base64
+import math
 from io import BytesIO
 import json
 from dataclasses import dataclass, asdict
@@ -216,7 +217,7 @@ chart_options = {
         "Grant Amount Scatter Plot",
         "Grant Amount Heatmap",
         "Grant Description Word Clouds",
-        "Treemaps by Subject, Population and Strategy",
+        "Treemaps with Extended Analysis",
         "General Analysis of Relationships",
         "Top Categories by Unique Grant Count"
     ],
@@ -239,8 +240,8 @@ selected_role = st.sidebar.selectbox("Select User Role", options=user_roles)
 selected_chart = st.sidebar.selectbox("Select Chart", options=chart_options[selected_role])
 
 
-# Set the title of the main content area to "Grant Analysis Dashboard"
-st.title("Grant Analysis Dashboard")
+# Set the title of the main content area to "GrantScope Dashboard"
+st.title("GrantScope Dashboard")
 
 # If the user selects "Data Summary" from the chart options
 if selected_chart == "Data Summary":
@@ -631,23 +632,27 @@ elif selected_chart == "Grant Description Word Clouds":
                 st.write(f"No grant descriptions found containing '{selected_word}'.")
 
 # Treemaps of Grant Amount by Subject, Population and Strategy
-elif selected_chart == "Treemaps by Subject, Population and Strategy":
-    st.header("Treemaps by Subject, Population and Strategy")
+elif selected_chart == "Treemaps with Extended Analysis":
+    usd_range_options = ['All'] + sorted(grouped_df['amount_usd_cluster'].unique())
 
-    st.write("Explore the distribution of grant amounts across different subjects, populations, and strategies using interactive treemaps.")
+    st.header("Treemaps by Subject, Population and Strategy")
+    st.write(
+        "Explore the distribution of grant amounts across different subjects, populations, and strategies using interactive treemaps.Select categories using drop downs below to investigate box details.")
 
     col1, col2 = st.columns(2)
-
     with col1:
         analyze_column = st.radio("Select Variable for Treemap",
                                   options=['grant_strategy_tran', 'grant_subject_tran', 'grant_population_tran'])
-
     with col2:
-        selected_label = st.selectbox("Select USD Range", options=grouped_df['amount_usd_cluster'].unique())
+        selected_label = st.selectbox("Select USD Range", options=usd_range_options)
 
-    filtered_data = grouped_df[grouped_df['amount_usd_cluster'] == selected_label]
-    grouped_data = filtered_data.groupby(analyze_column)['amount_usd'].sum().reset_index().sort_values(
-        by='amount_usd', ascending=False)
+    if selected_label == 'All':
+        filtered_data = grouped_df
+    else:
+        filtered_data = grouped_df[grouped_df['amount_usd_cluster'] == selected_label]
+
+    grouped_data = filtered_data.groupby(analyze_column)['amount_usd'].sum().reset_index().sort_values(by='amount_usd',
+                                                                                                       ascending=True)
 
     fig = px.treemap(grouped_data, path=[analyze_column], values='amount_usd',
                      title=f"Treemap: Sum of Amount in USD by {analyze_column} for {selected_label} USD range",
@@ -655,18 +660,43 @@ elif selected_chart == "Treemaps by Subject, Population and Strategy":
     fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig)
 
-    expander = st.expander(f"Show Grant Breakdown for {analyze_column} Blocks")
-    with expander:
-        selected_block = st.selectbox(f"Select {analyze_column} Block", options=grouped_data[analyze_column])
-        block_grants = filtered_data[filtered_data[analyze_column] == selected_block]
+    # Initialize 'block_grants' as an empty DataFrame to ensure it's always defined
+    block_grants = pd.DataFrame()
 
-        st.write(f"### Grants for {selected_block}")
-        for _, row in block_grants.iterrows():
-            st.write(f"- **Grant Key:** {row['grant_key']}")
-            st.write(f"  **Description:** {row['grant_description']}")
-            st.write(f"  **Amount (USD):** {row['amount_usd']:.2f}")
-            st.write("---")
+    # Only attempt to show detail view if there's grouped data available
+    if not grouped_data.empty:
+        selected_block = st.selectbox("Select Detail to View",
+                                      options=[None] + sorted(grouped_data[analyze_column].unique()), index=0)
+        if selected_block:
+            block_grants = filtered_data[filtered_data[analyze_column] == selected_block]
 
+            # Display Dashboard Summary in Columns if block grants are not empty
+            if not block_grants.empty:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(label="Total Grants", value=len(block_grants))
+                with col2:
+                    st.metric(label="Total USD", value=f"${block_grants['amount_usd'].sum():,.2f}")
+                with col3:
+                    st.metric(label="Average Grant USD", value=f"${block_grants['amount_usd'].mean():,.2f}")
+
+                # Sort and Display Detailed View
+                block_grants_sorted = block_grants.sort_values(by='amount_usd', ascending=False)
+                block_grants_sorted = block_grants_sorted[['grant_description', 'amount_usd']]
+                st.subheader("Selected Grant Descriptions")
+                st.dataframe(block_grants_sorted)
+
+        # Ensure block_grants is not empty before trying to display the grant summary
+        if not block_grants.empty:
+            st.subheader("Raw Data for Selected Detail")
+            grant_summary = block_grants[
+                ['grant_key', 'amount_usd', 'year_issued', 'grant_subject_tran', 'grant_population_tran',
+                 'grant_strategy_tran']]
+            st.dataframe(grant_summary)
+        else:
+            st.write("No detailed data available for the selected options.")
+
+    # Download button
     if st.button(f"Download Data for {selected_label} USD range"):
         output = BytesIO()
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -677,11 +707,6 @@ elif selected_chart == "Treemaps by Subject, Population and Strategy":
         href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_{selected_label}.xlsx">Download Excel File</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-    st.subheader("All Grants Summary")
-    grant_summary = grouped_df[
-        ['grant_key', 'amount_usd', 'year_issued', 'grant_subject_tran', 'grant_population_tran',
-         'grant_strategy_tran']]
-    st.dataframe(grant_summary)
 
 elif selected_chart == "General Analysis of Relationships":
     st.header("General Analysis of Relationships")
