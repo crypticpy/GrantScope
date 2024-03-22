@@ -5,11 +5,13 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import xlsxwriter
 from wordcloud import WordCloud, STOPWORDS
 from textwrap import shorten
 import base64
 from io import BytesIO
 import json
+import streamlit.components.v1 as components
 from dataclasses import dataclass, asdict
 from typing import List
 
@@ -183,6 +185,16 @@ def preprocess_data(grants):
 
     return df, grouped_df
 
+# Define the function for downloading an Excel file
+def download_excel(df, filename):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    writer.close()
+    output.seek(0)
+    b64 = base64.b64encode(output.read()).decode()
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">Download Excel File</a>'
+    st.markdown(href, unsafe_allow_html=True)
 
 # Define the file path for the JSON file containing the grant data
 file_path = 'fixed_ovp.json'
@@ -207,7 +219,7 @@ chart_options = {
         "Grant Amount Heatmap",
         "Grant Description Word Clouds",
         "Treemaps by Subject, Population and Strategy",
-        "Univariate Analysis of Numeric Columns",
+        "General Analysis of Relationships",
         "Top Categories by Unique Grant Count"
     ],
     "Normal Grant User": [
@@ -234,205 +246,159 @@ st.title("Grant Analysis Dashboard")
 
 # If the user selects "Data Summary" from the chart options
 if selected_chart == "Data Summary":
-    # Set the header of the Streamlit page to "1. Data Summary"
     st.header("Data Summary")
+    st.write("""
+    Welcome to the GrantScope Tool! This powerful application is designed to assist grant writers and analysts in navigating and extracting insights from a comprehensive grant dataset. By leveraging the capabilities of this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information to enhance your grant proposals.
 
-    # Display the first few rows of the DataFrame
+    The preloaded dataset encompasses a wide range of information, including details about funders, recipients, grant amounts, subject areas, populations served, and more. With this tool, you can explore the data through interactive visualizations, filter and search for specific grants, and download relevant data for further analysis.
+
+    Let's dive in and uncover the wealth of knowledge hidden within this grant dataset!
+    """)
+
+    st.subheader("Dataset Overview")
     st.write(df.head())
 
-    # Calculate and display the number of unique grants
-    unique_grant_keys = df['grant_key'].nunique()
-    st.write(f"Total Unique Grants: {unique_grant_keys}")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="Total Unique Grants", value=df['grant_key'].nunique())
+    with col2:
+        st.metric(label="Total Unique Funders", value=df['funder_name'].nunique())
+    with col3:
+        st.metric(label="Total Unique Recipients", value=df['recip_name'].nunique())
 
-    # Calculate and display the number of unique funders
-    st.write(f"Total Unique Funders: {df['funder_name'].nunique()}")
-
-    # Calculate and display the number of unique recipients
-    st.write(f"Total Unique Recipients: {df['recip_name'].nunique()}")
-
-    # Set the header of the Streamlit page to "Top Funders by Total Grant Amount"
-    st.header("Top Funders by Total Grant Amount")
-
-    # Create a slider in Streamlit for the user to select the number of top funders to display
+    st.subheader("Top Funders by Total Grant Amount")
     top_n = st.slider("Select the number of top funders to display", min_value=5, max_value=20, value=10, step=1)
-
-    # Drop duplicates based on 'grant_key' to consider each grant only once
     unique_df = df.drop_duplicates(subset='grant_key')
-
-    # Group the unique DataFrame by 'funder_name', calculate the total 'amount_usd' for each group,
-    # sort the resulting Series in descending order, and take the top 'top_n' rows
     top_funders = unique_df.groupby('funder_name')['amount_usd'].sum().nlargest(top_n).reset_index()
 
-    # Create a bar chart of the top funders by total grant amount using Plotly Express
     fig = px.bar(top_funders, x='funder_name', y='amount_usd', title=f"Top {top_n} Funders by Total Grant Amount")
-
-    # Update the layout of the figure
     fig.update_layout(xaxis_title='Funder Name', yaxis_title='Total Grant Amount (USD)')
-
-    # Display the figure in Streamlit
     st.plotly_chart(fig)
 
-    # If the user checks the checkbox to show the data table, display the 'top_funders' DataFrame in Streamlit
     if st.checkbox("Show Top Funders Data Table"):
         st.write(top_funders)
 
-    # Set the header of the Streamlit page to "Grant Distribution by Funder Type"
-    st.header("Grant Distribution by Funder Type")
-
-    # Drop duplicates based on 'grant_key' to consider each grant only once
-    unique_df = df.drop_duplicates(subset='grant_key')
-
-    # Group the unique DataFrame by 'funder_type' and calculate the total 'amount_usd' for each group
+    st.subheader("Grant Distribution by Funder Type")
     funder_type_dist = unique_df.groupby('funder_type')['amount_usd'].sum().reset_index()
 
-    # Create a pie chart of the grant distribution by funder type using Plotly Express
     fig = px.pie(funder_type_dist, values='amount_usd', names='funder_type', title="Grant Distribution by Funder Type")
-
-    # Display the figure in Streamlit
     st.plotly_chart(fig)
 
     if st.checkbox("Show Funder Type Data Table"):
         st.write(funder_type_dist)
+
+    st.subheader("Grant Distribution by Subject Area")
+    subject_dist = unique_df.groupby('grant_subject_tran')['amount_usd'].sum().nlargest(10).reset_index()
+
+    fig = px.bar(subject_dist, x='grant_subject_tran', y='amount_usd',
+                 title="Top 10 Grant Subject Areas by Total Amount")
+    fig.update_layout(xaxis_title='Subject Area', yaxis_title='Total Grant Amount (USD)')
+    st.plotly_chart(fig)
+
+    st.subheader("Grant Distribution by Population Served")
+    population_dist = unique_df.groupby('grant_population_tran')['amount_usd'].sum().nlargest(10).reset_index()
+
+    fig = px.bar(population_dist, x='grant_population_tran', y='amount_usd',
+                 title="Top 10 Populations Served by Total Grant Amount")
+    fig.update_layout(xaxis_title='Population Served', yaxis_title='Total Grant Amount (USD)')
+    st.plotly_chart(fig)
+
+    st.write("""
+    This is just a glimpse of the insights you can uncover using the Grant Explorer Tool. Feel free to explore the other sections of the application to dive deeper into specific aspects of the grant data, such as analyzing trends over time, examining geographic distributions, or searching for grants based on keywords.
+
+    Happy exploring and best of luck with your grant writing endeavors!
+    """)
 # Grant Amount Distribution by USD Cluster
-# This section of the code is executed if the user selects "Grant Amount Distribution by USD Cluster" from the chart options.
 elif selected_chart == "Grant Amount Distribution":
-    # Set the header of the Streamlit page to "Grant Amount Distribution by USD Cluster"
     st.header("Grant Amount Distribution")
+    st.write("Explore the distribution of grant amounts across different USD clusters and apply optional drill-down filters.")
 
-    # Get a list of unique values in the 'amount_usd_cluster' column of the grouped_df DataFrame
     cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
-
-    # Create a multi-select box in Streamlit for the user to select one or more USD clusters
-    # The default selection is all clusters
     selected_clusters = st.multiselect("Select USD Clusters", options=cluster_options, default=cluster_options)
 
-    # Filter the DataFrame to include only rows where 'amount_usd_cluster' is in the selected clusters
     filtered_df = grouped_df[grouped_df['amount_usd_cluster'].isin(selected_clusters)]
 
-    # Create an expander in Streamlit for optional drill-down filters
-    drill_down_options = st.expander("Optional Drill-Down Filters", expanded=False)
-    with drill_down_options:
-        # Get a list of unique values in the 'grant_subject_tran' column of the filtered_df DataFrame
-        subject_options = filtered_df['grant_subject_tran'].unique().tolist()
-        # Create a multi-select box in Streamlit for the user to select one or more grant subjects
-        # The default selection is all subjects
-        selected_subjects = st.multiselect("Select Grant Subjects", options=subject_options, default=subject_options,
-                                           key='subject_select')
-        # Create a button in Streamlit for the user to apply the selected grant subject filters
-        subject_submit = st.button("Apply Grant Subject Filters")
 
-        # Get a list of unique values in the 'grant_population_tran' column of the filtered_df DataFrame
-        population_options = filtered_df['grant_population_tran'].unique().tolist()
-        # Create a multi-select box in Streamlit for the user to select one or more grant populations
-        # The default selection is all populations
-        selected_populations = st.multiselect("Select Grant Populations", options=population_options,
-                                              default=population_options, key='population_select')
-        # Create a button in Streamlit for the user to apply the selected grant population filters
-        population_submit = st.button("Apply Grant Population Filters")
+    # create a page divider
+    st.divider()
+    st.write("It is recommended to use the multi select options above to narrow your scope before applying these drill down filters. Otherwise the chart may take a long time to load, and there will be too many options to sort.")
+    col1, col2 = st.columns(2)
+    with col1:
+        drill_down_options = st.expander("Optional Drill-Down Filters", expanded=False)
+        with drill_down_options:
+            subject_options = filtered_df['grant_subject_tran'].unique().tolist()
+            selected_subjects = st.multiselect("Select Grant Subjects", options=subject_options, default=subject_options,
+                                               key='subject_select')
 
-        # Get a list of unique values in the 'grant_strategy_tran' column of the filtered_df DataFrame
-        strategy_options = filtered_df['grant_strategy_tran'].unique().tolist()
-        # Create a multi-select box in Streamlit for the user to select one or more grant strategies
-        # The default selection is all strategies
-        selected_strategies = st.multiselect("Select Grant Strategies", options=strategy_options,
-                                             default=strategy_options, key='strategy_select')
-        # Create a button in Streamlit for the user to apply the selected grant strategy filters
-        strategy_submit = st.button("Apply Grant Strategy Filters")
+            population_options = filtered_df['grant_population_tran'].unique().tolist()
+            selected_populations = st.multiselect("Select Grant Populations", options=population_options,
+                                                  default=population_options, key='population_select')
 
-    # If the user has clicked the button to apply the grant subject filters, use the selected subjects
-    # Otherwise, use all subjects
-    filtered_subjects = selected_subjects if subject_submit else subject_options
-    # If the user has clicked the button to apply the grant population filters, use the selected populations
-    # Otherwise, use all populations
-    filtered_populations = selected_populations if population_submit else population_options
-    # If the user has clicked the button to apply the grant strategy filters, use the selected strategies
-    # Otherwise, use all strategies
-    filtered_strategies = selected_strategies if strategy_submit else strategy_options
+            strategy_options = filtered_df['grant_strategy_tran'].unique().tolist()
+            selected_strategies = st.multiselect("Select Grant Strategies", options=strategy_options,
+                                                 default=strategy_options, key='strategy_select')
 
-    # Filter the DataFrame to include only rows where 'grant_subject_tran' is in the filtered subjects,
-    # 'grant_population_tran' is in the filtered populations, and 'grant_strategy_tran' is in the filtered strategies
+        apply_filters = st.button("Apply Filters")
+
+    with col2:
+        chart_type = st.radio("Select Chart Type", options=["Bar Chart", "Treemap"], index=0)
+
+    filtered_subjects = selected_subjects if apply_filters else subject_options
+    filtered_populations = selected_populations if apply_filters else population_options
+    filtered_strategies = selected_strategies if apply_filters else strategy_options
+
     filtered_df = filtered_df[
         (filtered_df['grant_subject_tran'].isin(filtered_subjects)) &
         (filtered_df['grant_population_tran'].isin(filtered_populations)) &
         (filtered_df['grant_strategy_tran'].isin(filtered_strategies))
-        ]
+    ]
 
-    # Create a bar chart using Plotly Express with 'amount_usd_cluster' as the x-axis, 'amount_usd' as the y-axis,
-    # and 'amount_usd_cluster' as the color dimension
-    fig = px.bar(filtered_df, x='amount_usd_cluster', y='amount_usd', color='amount_usd_cluster')
+    if chart_type == "Bar Chart":
+        fig = px.bar(filtered_df, x='amount_usd_cluster', y='amount_usd', color='amount_usd_cluster',
+                     title="Grant Amount Distribution by USD Cluster",
+                     custom_data=['grant_key', 'grant_description'])
+        fig.update_layout(xaxis_title='USD Cluster', yaxis_title='Total Grant Amount')
+        fig.update_traces(hovertemplate='<b>USD Cluster:</b> %{x}<br><b>Total Grant Amount:</b> %{y}<br><br><b>Grant Key:</b> %{customdata[0]}<br><b>Grant Description:</b> %{customdata[1]}')
+    else:
+        fig = px.treemap(filtered_df, path=['amount_usd_cluster'], values='amount_usd',
+                         title="Grant Amount Distribution by USD Cluster (Treemap)")
 
-    # Add click event to the chart to show underlying data
-    fig.update_layout(clickmode='event+select')
-    # Update the traces of the chart to have a blue line color, a line width of 1.5, and an opacity of 0.6
-    fig.update_traces(selector=dict(type='bar'), marker_line_color='rgb(8,48,107)', marker_line_width=1.5, opacity=0.6)
-
-    # Display the chart in Streamlit
     st.plotly_chart(fig)
 
-    # Check if the user has checked the "Show Grant Descriptions for Selected Filters" checkbox
-    if st.checkbox("Show Grant Descriptions for Selected Filters"):
-        # If the checkbox is checked, write "Grant Descriptions:" to the Streamlit page
-        st.write("Grant Descriptions:")
-        # Iterate over each row in the filtered DataFrame
+    expander = st.expander("Show Grant Descriptions for Selected Filters", expanded=False)
+    with expander:
+        st.write("### Grant Descriptions:")
         for _, row in filtered_df.iterrows():
-            # For each row, write the grant key and grant description to the Streamlit page
-            st.write(f"- Grant Key: {row['grant_key']}")
-            st.write(f"  Description: {row['grant_description']}")
-            # Write a separator line to the Streamlit page
+            st.write(f"- **Grant Key:** {row['grant_key']}")
+            st.write(f"  **Description:** {row['grant_description']}")
             st.write("---")
 
-    # If the user checks the checkbox to show the underlying data for the chart, display the filtered DataFrame in Streamlit
     if st.checkbox("Show Underlying Data for Chart"):
         st.write(filtered_df)
 
-    # If the user clicks the button to download data for the chart
     if st.button("Download Data for Chart"):
-        # Create a BytesIO object to hold the Excel data
-        output = BytesIO()
-        # Create a Pandas ExcelWriter object with the BytesIO object as the target
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        # Write the filtered DataFrame to the ExcelWriter object
-        filtered_df.to_excel(writer, index=False, sheet_name='Sheet1')
-        # Close the ExcelWriter object
-        writer.close()
-        # Reset the position of the BytesIO object to the beginning
-        output.seek(0)
-        # Encode the BytesIO object as base64
-        b64 = base64.b64encode(output.read()).decode()
-        # Create a download link for the Excel file
-        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_chart.xlsx">Download Excel File</a>'
-        # Display the download link in Streamlit
-        st.markdown(href, unsafe_allow_html=True)
+        download_excel(filtered_df, "grants_data_chart.xlsx")
 
 
 # Grant Amount vs Year Scatter Plot
 elif selected_chart == "Grant Amount Scatter Plot":
     st.header("Grant Amount Scatter Plot")
+    st.write("Explore the distribution of grant amounts over time using an interactive scatter plot. The plot will dynamically update based on the selected USD clusters and year range available in the data.")
 
-    # Get the unique years from the data
     unique_years = sorted(df['year_issued'].unique())
-
     if len(unique_years) == 1:
-        # If there is only one year, display the year
         unique_year = int(unique_years[0])
         st.write(f"Data available for year: {unique_year}")
         start_year, end_year = unique_year, unique_year
     else:
-        # If there are multiple years, display the year range slider
-        start_year, end_year = st.slider(
-            "Select Year Range",
-            min_value=int(min(unique_years)),
-            max_value=int(max(unique_years)),
-            value=(int(min(unique_years)), int(max(unique_years)))
-        )
+        start_year = st.number_input("Start Year", min_value=int(min(unique_years)), max_value=int(max(unique_years)), value=int(min(unique_years)))
+        end_year = st.number_input("End Year", min_value=int(min(unique_years)), max_value=int(max(unique_years)), value=int(max(unique_years)))
 
-    # Filter dataframe based on the selected year range
     filtered_df = grouped_df[
         (grouped_df['year_issued'].astype(int) >= start_year) &
         (grouped_df['year_issued'].astype(int) <= end_year)
-        ]
+    ]
 
-    # Multi-select for choosing USD clusters
     cluster_options = filtered_df['amount_usd_cluster'].unique().tolist()
     selected_clusters = st.multiselect(
         "Select USD Clusters",
@@ -441,19 +407,24 @@ elif selected_chart == "Grant Amount Scatter Plot":
         key='scatter_clusters'
     )
 
-    # Filter the dataframe based on the selected clusters
     filtered_df = filtered_df[filtered_df['amount_usd_cluster'].isin(selected_clusters)]
 
-    # Create the scatter plot
+    color_scheme = st.selectbox("Color Scheme", options=["viridis", "plasma", "inferno", "magma", "cividis"])
+    marker_size = st.slider("Marker Size", min_value=1, max_value=20, value=5)
+    opacity = st.slider("Opacity", min_value=0.1, max_value=1.0, value=0.8, step=0.1)
+
     fig = px.scatter(
         filtered_df,
         x='year_issued',
         y='amount_usd',
         color='amount_usd_cluster',
-        hover_data=['grant_key', 'grant_description']
+        hover_data=['grant_key', 'grant_description'],
+        color_continuous_scale=color_scheme,
+        opacity=opacity
     )
 
-    # Update the layout of the figure
+    fig.update_traces(marker=dict(size=marker_size))
+
     fig.update_layout(
         title='Grant Amount by Year' if len(unique_years) > 1 else f'Grant Amount for Year {start_year}',
         xaxis_title='Year Issued',
@@ -463,66 +434,63 @@ elif selected_chart == "Grant Amount Scatter Plot":
         clickmode='event+select'
     )
 
-    # Update x-axis to display years as integers
     fig.update_xaxes(tickformat='d')
-    # Update the hover template to display grant key and description
     fig.update_traces(hovertemplate="<b>Grant Key:</b> %{customdata[0]}<br><b>Description:</b> %{customdata[1]}")
-    # Display the plot in Streamlit
+
     st.plotly_chart(fig)
 
-    # Checkbox to allow the user to choose to view the underlying data
     if st.checkbox("Show Underlying Data for Chart"):
         st.write(filtered_df)
 
-    # Button to download the data as an Excel file
-    if st.button("Download Data for Chart"):
-        output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        filtered_df.to_excel(writer, index=False, sheet_name='Sheet1')
-        writer.close()
-        output.seek(0)
-        b64 = base64.b64encode(output.read()).decode()
-        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_chart.xlsx">Download Excel File</a>'
+    if st.button("Download Data as CSV"):
+        csv = filtered_df.to_csv(index=False)
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="grants_data_chart.csv">Download CSV File</a>'
         st.markdown(href, unsafe_allow_html=True)
 
 # Grant Amount by Population and Strategy Heatmap
-# This section of the code is executed if the user selects "Grant Amount by Population and Strategy Heatmap" from the chart options.
+# This section of the code is executed if the user selects "Grant Amount by Population and Strategy Heatmap".
 elif selected_chart == "Grant Amount Heatmap":
-    # Set the header of the Streamlit page to "Grant Amount by Population and Strategy Heatmap"
     st.header("Grant Amount Heatmap")
+    st.write("Explore the intersection of grant dimensions and identify meaningful funding patterns.")
 
-    # Create a select box in Streamlit for the user to select the first dimension for the heatmap
-    # The options are 'grant_subject_tran', 'grant_population_tran', and 'grant_strategy_tran'
-    dimension1 = st.selectbox("Select Dimension 1",
-                              options=['grant_subject_tran', 'grant_population_tran', 'grant_strategy_tran'])
-    # Create a select box in Streamlit for the user to select the second dimension for the heatmap
-    # The options are 'grant_subject_tran', 'grant_population_tran', and 'grant_strategy_tran'
-    dimension2 = st.selectbox("Select Dimension 2",
-                              options=['grant_subject_tran', 'grant_population_tran', 'grant_strategy_tran'], index=1)
+    dimension_options = ['grant_subject_tran', 'grant_population_tran', 'grant_strategy_tran']
+    default_dim1, default_dim2 = dimension_options[:2]
 
-    # Create a multi-select box in Streamlit for the user to select the values for the first dimension
-    selected_values1 = st.multiselect(f"Select {dimension1.split('_')[1].capitalize()}s",
-                                      options=grouped_df[dimension1].unique(), default=grouped_df[dimension1].unique())
-    # Create a multi-select box in Streamlit for the user to select the values for the second dimension
-    selected_values2 = st.multiselect(f"Select {dimension2.split('_')[1].capitalize()}s",
-                                      options=grouped_df[dimension2].unique(), default=grouped_df[dimension2].unique())
+    col1, col2 = st.columns(2)
+    with col1:
+        dimension1 = st.selectbox("Select Dimension 1", options=dimension_options, index=dimension_options.index(default_dim1))
+    with col2:
+        dimension2 = st.selectbox("Select Dimension 2", options=[d for d in dimension_options if d != dimension1], index=0)
 
-    # Create a pivot table for the heatmap by grouping the DataFrame by the selected dimensions and summing the 'amount_usd' for each group
-    # Fill any missing values with 0
+    st.caption("Select individual values for each dimension to filter the heatmap.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.expander(f"Select {dimension1.split('_')[1].capitalize()}s", expanded=False):
+            selected_values1 = st.multiselect(f"Select {dimension1.split('_')[1].capitalize()}s",
+                                              options=grouped_df[dimension1].unique(),
+                                              default=grouped_df[dimension1].unique())
+    with col2:
+        with st.expander(f"Select {dimension2.split('_')[1].capitalize()}s", expanded=False):
+            selected_values2 = st.multiselect(f"Select {dimension2.split('_')[1].capitalize()}s",
+                                              options=grouped_df[dimension2].unique(),
+                                              default=grouped_df[dimension2].unique())
+
     pivot_table = grouped_df[
         grouped_df[dimension1].isin(selected_values1) &
         grouped_df[dimension2].isin(selected_values2)
-        ].groupby([dimension1, dimension2])['amount_usd'].sum().unstack().fillna(0)
+    ].groupby([dimension1, dimension2])['amount_usd'].sum().unstack().fillna(0)
 
-    # Create a Plotly heatmap with the pivot table data
     fig = go.Figure(data=go.Heatmap(
         x=pivot_table.columns,
         y=pivot_table.index,
         z=pivot_table.values,
-        colorscale='Plasma'
+        colorscale='Plasma',
+        hovertemplate='<b>%{yaxis.title.text}</b>: %{y}<br><b>%{xaxis.title.text}</b>: %{x}<br><b>Total Grant Amount</b>: %{z:,.0f}',
+        colorbar=dict(title='Total Grant Amount')
     ))
 
-    # Update the layout of the heatmap
     fig.update_layout(
         title=f'Total Grant Amount by {dimension1.split("_")[1].capitalize()} and {dimension2.split("_")[1].capitalize()}',
         xaxis_title=dimension2.split('_')[1].capitalize(),
@@ -531,316 +499,331 @@ elif selected_chart == "Grant Amount Heatmap":
         height=800
     )
 
-    # Display the heatmap in Streamlit
     st.plotly_chart(fig)
 
-    # If the user clicks the button to download data for the chart, create an Excel file with the data and provide a download link
-    if st.button("Download Data for Chart"):
+    if st.checkbox("Show Underlying Data"):
+        st.write(pivot_table)
+
+    if st.button("Download Data as Excel"):
         output = BytesIO()
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        grouped_df.to_excel(writer, index=False, sheet_name='Sheet1')
+        pivot_table.to_excel(writer, sheet_name='Heatmap Data')
         writer.close()
         output.seek(0)
         b64 = base64.b64encode(output.read()).decode()
-        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_chart.xlsx">Download Excel File</a>'
+        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="heatmap_data.xlsx">Download Excel File</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-    # Check if the user has checked the "Dive Grant Cross Section Data" checkbox
-    if st.checkbox("Dive Grant Cross Section Data"):
-        # If the checkbox is checked, create a select box for the user to select a value for the first dimension
-        selected_value1 = st.selectbox(f"Select {dimension1.split('_')[1].capitalize()}", options=selected_values1)
+    st.subheader("Explore Grant Details")
+    selected_value1 = st.selectbox(f"Select {dimension1.split('_')[1].capitalize()}", options=selected_values1)
 
-        # Filter the DataFrame to include only rows where the first dimension is equal to the selected value
-        filtered_df = grouped_df[grouped_df[dimension1] == selected_value1]
-        # Get a list of unique values in the second dimension of the filtered DataFrame
-        available_values2 = filtered_df[dimension2].unique().tolist()
+    filtered_df = grouped_df[grouped_df[dimension1] == selected_value1]
+    available_values2 = filtered_df[dimension2].unique().tolist()
 
-        # If there are available values for the second dimension
-        if available_values2:
-            # Create a select box for the user to select a value for the second dimension
-            selected_value2 = st.selectbox(f"Select {dimension2.split('_')[1].capitalize()}", options=available_values2)
-            # Filter the DataFrame to include only rows where the first dimension is equal to
-            # the selected value for the first dimension
-            # and the second dimension is equal to the selected value for the second dimension
-            cell_grants = grouped_df[
-                (grouped_df[dimension1] == selected_value1) &
-                (grouped_df[dimension2] == selected_value2)
-                ]
-            # Write "Grant Descriptions:" to the Streamlit page
-            st.write("Grant Descriptions:")
-            # Iterate over each row in the filtered DataFrame
-            for _, row in cell_grants.iterrows():
-                # For each row, write the grant key and grant description to the Streamlit page
-                st.write(f"- Grant Key: {row['grant_key']}")
-                st.write(f"  Description: {row['grant_description']}")
-                # Write a separator line to the Streamlit page
-                st.write("---")
+    if available_values2:
+        selected_value2 = st.selectbox(f"Select {dimension2.split('_')[1].capitalize()}", options=available_values2)
+        cell_grants = grouped_df[
+            (grouped_df[dimension1] == selected_value1) &
+            (grouped_df[dimension2] == selected_value2)
+        ]
+
+        if not cell_grants.empty:
+            st.write(f"Grants for {dimension1.split('_')[1].capitalize()}: {selected_value1} and {dimension2.split('_')[1].capitalize()}: {selected_value2}")
+            grant_details = cell_grants[['grant_key', 'grant_description', 'amount_usd']]
+            st.write(grant_details)
+
+            if st.button("Download Grant Details as CSV"):
+                csv = grant_details.to_csv(index=False)
+                b64 = base64.b64encode(csv.encode()).decode()
+                href = f'<a href="data:file/csv;base64,{b64}" download="grant_details.csv">Download CSV File</a>'
+                st.markdown(href, unsafe_allow_html=True)
         else:
-            # If there are no available values for the second dimension, write a message to the Streamlit page
-            st.write(f"No {dimension2.split('_')[1]}s available for the selected {dimension1.split('_')[1]}.")
+            st.write(f"No grants found for {dimension1.split('_')[1].capitalize()}: {selected_value1} and {dimension2.split('_')[1].capitalize()}: {selected_value2}")
+    else:
+        st.write(f"No {dimension2.split('_')[1].capitalize()}s available for the selected {dimension1.split('_')[1].capitalize()}.")
 
 # Top Grant Description Words by USD Cluster
-# This section of the code is executed if the user selects
-# "Top Grant Description Words by USD Cluster" from the chart options.
 elif selected_chart == "Grant Description Word Clouds":
-    # Set the header of the Streamlit page to "Top Grant Description Words by USD Cluster"
     st.header("Grant Description Word Clouds")
+    st.write("Explore the most common words in grant descriptions based on different criteria.")
 
-    # Get a list of unique values in the 'amount_usd_cluster' column of the grouped_df DataFrame
-    cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
+    # Define the options for generating word clouds
+    cloud_basis_options = ['USD Cluster', 'Funder', 'Population', 'Strategy']
+    selected_basis = st.selectbox("Select the basis for generating word clouds:", options=cloud_basis_options)
 
-    # Create a multi-select box in Streamlit for the user to select one or more USD clusters
-    # The default selection is all clusters
-    selected_clusters = st.multiselect("Select USD Clusters", options=cluster_options, default=cluster_options,
-                                       key='wordcloud_clusters')
+    # Define the column name mapping based on the selected basis
+    column_mapping = {
+        'USD Cluster': 'amount_usd_cluster',
+        'Funder': 'funder_name',
+        'Population': 'grant_population_tran',
+        'Strategy': 'grant_strategy_tran'
+    }
+    selected_column = column_mapping[selected_basis]
 
-    # Define a set of common words to be excluded from the word cloud
+    # Get the unique values for the selected column
+    unique_values = grouped_df[selected_column].unique().tolist()
+
+    # Create a multi-select box for the user to select one or more values
+    selected_values = st.multiselect(f"Select {selected_basis}(s)", options=unique_values, default=unique_values)
+
+    # Define the stopwords and additional stopwords
     stopwords = set(STOPWORDS)
-
-    # Define a set of additional words to be excluded from the word cloud
     additional_stopwords = {'public', 'Public', 'health', 'Health', 'and', 'And', 'to', 'To', 'of', 'Of', 'the', 'The',
                             'a', 'A', 'by', 'By', 'in', 'In', 'for', 'For', 'with', 'With', 'on', 'On', 'is', 'Is',
                             'that', 'That', 'are', 'Are', 'as', 'As', 'be', 'Be', 'this', 'This', 'will', 'Will', 'at',
                             'At', 'from', 'From', 'or', 'Or', 'an', 'An', 'which', 'Which', 'have', 'Have', 'it', 'It',
                             'not', 'Not', 'who', 'Who', 'their', 'Their', 'we', 'We', 'support', 'Support', 'project',
                             'Project'}
-
-    # Add the additional stopwords to the set of stopwords
     stopwords.update(additional_stopwords)
 
-    # Iterate over each cluster in the selected clusters
-    for cluster in selected_clusters:
-        # Filter the dataframe to get the top 20 grants based on the amount_usd for the current cluster
-        top_grants = grouped_df[grouped_df['amount_usd_cluster'] == cluster].nlargest(20, 'amount_usd')
-        # Join the grant descriptions of the top grants into a single string
-        text = ' '.join(top_grants['grant_description'])
+    # Set the number of charts to display per page
+    charts_per_page = 10
 
-        # Generate a word cloud from the text
-        wordcloud = WordCloud(stopwords=stopwords, width=800, height=400).generate(text)
+    # Calculate the total number of pages
+    total_pages = (len(selected_values) + charts_per_page - 1) // charts_per_page
 
-        # Create a new figure and axis for the plot
-        fig, ax = plt.subplots(figsize=(10, 5))
-        # Display the word cloud on the axis
-        ax.imshow(wordcloud, interpolation='bilinear')
-        # Hide the axis
-        ax.axis('off')
-        # Set the title of the plot
-        ax.set_title(f'Word Cloud of Grant Descriptions for {cluster} Cluster')
-        # Display the plot in Streamlit
-        st.pyplot(fig)
+    # Create a select box for the user to choose the page number
+    page_number = st.selectbox("Select Page", options=list(range(1, total_pages + 1)))
 
-        # Create a list of words from the text, excluding stopwords
-        words = [word for word in text.split() if word.lower() not in stopwords]
-        # Count the frequency of each word
-        word_freq = pd.Series(words).value_counts()
-        # Display the top words for the current cluster
-        st.write(f"Top Words for {cluster} Cluster:")
-        # Display the frequency of the top 20 words
-        st.write(word_freq.head(20))
+    # Calculate the start and end index of the selected values for the current page
+    start_index = (page_number - 1) * charts_per_page
+    end_index = min(start_index + charts_per_page, len(selected_values))
 
-        # Check if the user has checked the "Show Grant Descriptions for Selected Word in {cluster} Cluster" checkbox
-        if st.checkbox(f"Show Grant Descriptions for Selected Word in {cluster} Cluster"):
-            # If the checkbox is checked, create a select box for the user to select a word from the current cluster
-            selected_word = st.selectbox(f"Select a word from the {cluster} Cluster", options=list(word_freq.index))
+    # Display the word clouds and top words for the selected values on the current page
+    for value in selected_values[start_index:end_index]:
+        # Filter the dataframe based on the selected value
+        filtered_df = grouped_df[grouped_df[selected_column] == value]
 
-            # Filter the top grants DataFrame to include only rows where the grant description contains the selected word
-            # The case of the word is ignored in the search
-            grant_descriptions = top_grants[top_grants['grant_description'].str.contains(selected_word, case=False)]
+        # Join the grant descriptions into a single string
+        text = ' '.join(filtered_df['grant_description'])
 
-            # Write a header to the Streamlit page with the selected word and current cluster
-            st.write(f"Grant Descriptions containing '{selected_word}' in {cluster} Cluster:")
-            # Iterate over each grant description in the filtered DataFrame
-            for desc in grant_descriptions['grant_description']:
-                # For each grant description, write the description to the Streamlit page
-                st.write(f"- {desc}")
+        # Generate the word cloud
+        wordcloud = WordCloud(stopwords=stopwords, width=400, height=200).generate(text)
+
+        # Display the word cloud and top words in a single column
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.imshow(wordcloud, interpolation='bilinear')
+            ax.axis('off')
+            ax.set_title(f'Word Cloud for {selected_basis}: {value}')
+            st.pyplot(fig)
+            plt.close(fig)  # Close the figure to free up memory
+
+        with col2:
+            # Display the top words for the current value
+            words = [word for word in text.split() if word.lower() not in stopwords]
+            word_freq = pd.Series(words).value_counts()
+            st.write(f"Top Words for {selected_basis}: {value}")
+            st.write(word_freq.head(5))
+
+    # Provide an option to show grant descriptions for a selected word
+    if st.checkbox("Show Grant Descriptions for Selected Word"):
+        selected_word = st.text_input("Enter a word to search in grant descriptions:")
+
+        if selected_word:
+            # Filter the dataframe based on the selected values and search for the selected word
+            filtered_df = grouped_df[grouped_df[selected_column].isin(selected_values)]
+            grant_descriptions = filtered_df[filtered_df['grant_description'].str.contains(selected_word, case=False)]
+
+            if not grant_descriptions.empty:
+                st.write(f"Grant Descriptions containing '{selected_word}':")
+                for desc in grant_descriptions['grant_description']:
+                    st.write(f"- {desc}")
+            else:
+                st.write(f"No grant descriptions found containing '{selected_word}'.")
 
 # Treemaps of Grant Amount by Subject, Population and Strategy
-# This section of the code is executed if the user selects "Treemaps of Grant Amount by Subject, Population and Strategy" from the chart options.
 elif selected_chart == "Treemaps by Subject, Population and Strategy":
-    # Set the header of the Streamlit page to "Treemaps of Grant Amount by Subject, Population and Strategy"
     st.header("Treemaps by Subject, Population and Strategy")
 
-    # Create a radio button selection in Streamlit for the user to select a variable for the treemap.
-    # The options are 'grant_strategy_tran', 'grant_subject_tran', and 'grant_population_tran'.
-    analyze_column = st.radio("Select Variable for Treemap",
-                              options=['grant_strategy_tran', 'grant_subject_tran', 'grant_population_tran'])
+    st.write("Explore the distribution of grant amounts across different subjects, populations, and strategies using interactive treemaps.")
 
-    # Iterate over each unique value in the 'amount_usd_cluster' column of the grouped_df DataFrame
-    for label in grouped_df['amount_usd_cluster'].unique():
-        # Filter the DataFrame to include only rows where 'amount_usd_cluster' equals the current label
-        filtered_data = grouped_df[grouped_df['amount_usd_cluster'] == label]
-        # Group the filtered DataFrame by the 'analyze_column' and calculate the sum of 'amount_usd' for each group
-        # Reset the index of the resulting DataFrame and sort it by 'amount_usd' in descending order
-        grouped_data = filtered_data.groupby(analyze_column)['amount_usd'].sum().reset_index().sort_values(
-            by='amount_usd', ascending=False)
+    col1, col2 = st.columns(2)
 
-        # Create a treemap using Plotly Express with the path set to 'analyze_column' and values set to 'amount_usd'
-        # The title of the treemap is dynamically generated based on 'analyze_column' and the current label
-        fig = px.treemap(grouped_data, path=[analyze_column], values='amount_usd',
-                         title=f"Treemap: Sum of Amount in USD by {analyze_column} for {label} USD range")
-        # Display the treemap in Streamlit
-        st.plotly_chart(fig)
+    with col1:
+        analyze_column = st.radio("Select Variable for Treemap",
+                                  options=['grant_strategy_tran', 'grant_subject_tran', 'grant_population_tran'])
 
-        # Check if the user has checked the checkbox to show grants for the selected block in 'analyze_column'
-        # The checkbox label is dynamically generated based on 'analyze_column'
-        # The key for the checkbox is a combination of the current label and 'analyze_column'
-        if st.checkbox(f"Show Grant Breakdown for {analyze_column} Blocks", key=f"{label}_{analyze_column}"):
-            # If the checkbox is checked, create a select box for the user to select a block
-            # The options for the select box are the unique values in the 'analyze_column' of the grouped_data DataFrame
-            selected_block = st.selectbox(f"Select {analyze_column} Block", options=grouped_data[analyze_column])
-            # Filter the filtered_data DataFrame to include only rows where 'analyze_column' equals the selected block
-            block_grants = filtered_data[filtered_data[analyze_column] == selected_block]
-            # Write "Grant Descriptions:" to the Streamlit page
-            st.write("Grant Descriptions:")
-            # Iterate over each row in the block_grants DataFrame
-            for _, row in block_grants.iterrows():
-                # For each row, write the grant key and grant description to the Streamlit page
-                st.write(f"- Grant Key: {row['grant_key']}")
-                st.write(f"  Description: {row['grant_description']}")
-                st.write(f"  Amount (USD): {row['amount_usd']}")
-                # Write a separator line to the Streamlit page
-                st.write("---")
+    with col2:
+        selected_label = st.selectbox("Select USD Range", options=grouped_df['amount_usd_cluster'].unique())
 
-        # If the user clicks the button to download data for the current USD range
-        if st.button(f"Download Data for {label} USD range", key=f"download_{label}"):
-            # Create a BytesIO object to hold the Excel data
-            output = BytesIO()
-            # Create a Pandas ExcelWriter object with the BytesIO object as the target
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            # Write the filtered DataFrame to the ExcelWriter object
-            filtered_data.to_excel(writer, index=False, sheet_name='Sheet1')
-            # Close the ExcelWriter object
-            writer.close()
-            # Reset the position of the BytesIO object to the beginning
-            output.seek(0)
-            # Encode the BytesIO object as base64
-            b64 = base64.b64encode(output.read()).decode()
-            # Create a download link for the Excel file
-            href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_{label}.xlsx">Download Excel File</a>'
-            # Display the download link in Streamlit
-            st.markdown(href, unsafe_allow_html=True)
+    filtered_data = grouped_df[grouped_df['amount_usd_cluster'] == selected_label]
+    grouped_data = filtered_data.groupby(analyze_column)['amount_usd'].sum().reset_index().sort_values(
+        by='amount_usd', ascending=False)
 
-    # Add summary table of all grants
+    fig = px.treemap(grouped_data, path=[analyze_column], values='amount_usd',
+                     title=f"Treemap: Sum of Amount in USD by {analyze_column} for {selected_label} USD range",
+                     hover_data={'amount_usd': ':.2f'})
+    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig)
+
+    expander = st.expander(f"Show Grant Breakdown for {analyze_column} Blocks")
+    with expander:
+        selected_block = st.selectbox(f"Select {analyze_column} Block", options=grouped_data[analyze_column])
+        block_grants = filtered_data[filtered_data[analyze_column] == selected_block]
+
+        st.write(f"### Grants for {selected_block}")
+        for _, row in block_grants.iterrows():
+            st.write(f"- **Grant Key:** {row['grant_key']}")
+            st.write(f"  **Description:** {row['grant_description']}")
+            st.write(f"  **Amount (USD):** {row['amount_usd']:.2f}")
+            st.write("---")
+
+    if st.button(f"Download Data for {selected_label} USD range"):
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        filtered_data.to_excel(writer, index=False, sheet_name='Grants Data')
+        writer.close()
+        output.seek(0)
+        b64 = base64.b64encode(output.read()).decode()
+        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_{selected_label}.xlsx">Download Excel File</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
     st.subheader("All Grants Summary")
     grant_summary = grouped_df[
         ['grant_key', 'amount_usd', 'year_issued', 'grant_subject_tran', 'grant_population_tran',
          'grant_strategy_tran']]
-    st.write(grant_summary)
+    st.dataframe(grant_summary)
 
-# Univariate Analysis of Numeric Columns
-elif selected_chart == "Univariate Analysis of Numeric Columns":
-    # Set the header of the Streamlit page to "Univariate Analysis of Numeric Columns"
-    st.header("Univariate Analysis of Numeric Columns")
+elif selected_chart == "General Analysis of Relationships":
+    st.header("General Analysis of Relationships")
+    st.write("Explore the relationships between various factors and the award amount.")
 
-    # Get a list of all numeric columns in the DataFrame
-    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    # Create a new DataFrame with unique grant keys
+    unique_grants_df = df.drop_duplicates(subset=['grant_key'])
 
-    # If 'amount_usd_cluster' is in the list of numeric columns, remove it
-    if 'amount_usd_cluster' in numeric_columns:
-        numeric_columns.remove('amount_usd_cluster')
-
-    # Create a radio button selection in Streamlit for the user to select a numeric variable
-    selected_numeric = st.radio("Select Numeric Variable", options=numeric_columns)
-
-    # Create a histogram of the selected numeric variable using Plotly Express
-    # The number of bins is set to 50
-    # The title of the histogram is dynamically generated based on the selected numeric variable
-    fig = px.histogram(df, x=selected_numeric, nbins=50, title=f"Distribution of {selected_numeric}")
-    # Display the histogram in Streamlit
+    # Analyze the relationship between the number of words in grant descriptions and award amounts
+    st.subheader("Relationship between Grant Description Length and Award Amount")
+    unique_grants_df['description_word_count'] = unique_grants_df['grant_description'].apply(
+        lambda x: len(str(x).split()))
+    fig = px.scatter(unique_grants_df, x='description_word_count', y='amount_usd', opacity=0.5,
+                     title="Grant Description Length vs. Award Amount")
+    fig.update_layout(xaxis_title='Number of Words in Grant Description', yaxis_title='Award Amount (USD)',
+                      width=800, height=600)
     st.plotly_chart(fig)
 
-    # Create a boxplot of the selected numeric variable using Plotly Express
-    # The title of the boxplot is dynamically generated based on the selected numeric variable
-    fig = px.box(df, y=selected_numeric, title=f"Boxplot of {selected_numeric}")
-    # Display the boxplot in Streamlit
+    # Analyze the distribution of award amounts by different factors
+    st.subheader("Distribution of Award Amounts by Different Factors")
+    factors = ['grant_strategy_tran', 'grant_population_tran', 'grant_geo_area_tran', 'funder_name']
+    selected_factor = st.selectbox("Select Factor", options=factors)
+
+    # Explode the selected factor column and create a new DataFrame
+    exploded_df = unique_grants_df.assign(
+        **{selected_factor: unique_grants_df[selected_factor].str.split(';')}).explode(selected_factor)
+
+    fig = px.box(exploded_df, x=selected_factor, y='amount_usd',
+                 title=f"Award Amount Distribution by {selected_factor}")
+    fig.update_layout(xaxis_title=selected_factor, yaxis_title='Award Amount (USD)',
+                      width=800, height=600, boxmode='group')
     st.plotly_chart(fig)
 
-    # Display the summary statistics for the selected numeric variable in Streamlit
-    st.write(f"Summary Statistics for {selected_numeric}:")
-    st.write(df[selected_numeric].describe())
+    # Analyze the average award amount by different factors
+    st.subheader("Average Award Amount by Different Factors")
+    avg_amount_by_factor = exploded_df.groupby(selected_factor)['amount_usd'].mean().reset_index()
+    avg_amount_by_factor = avg_amount_by_factor.sort_values('amount_usd', ascending=False)
+    fig = px.bar(avg_amount_by_factor, x=selected_factor, y='amount_usd',
+                 title=f"Average Award Amount by {selected_factor}")
+    fig.update_layout(xaxis_title=selected_factor, yaxis_title='Average Award Amount (USD)',
+                      width=800, height=600, xaxis_tickangle=-45, xaxis_tickfont=dict(size=10))
+    st.plotly_chart(fig)
 
-# Top Categories by Unique Grant Count
+    # Analyze the affinity of funders towards specific grant types, populations, or strategies
+    st.subheader("Funder Affinity Analysis")
+    funders = unique_grants_df['funder_name'].unique().tolist()
+    selected_funder = st.selectbox("Select Funder", options=funders)
+
+    affinity_factors = ['grant_subject_tran', 'grant_population_tran', 'grant_strategy_tran']
+    selected_affinity_factor = st.selectbox("Select Affinity Factor", options=affinity_factors)
+
+    # Filter the unique grants DataFrame by the selected funder
+    funder_grants_df = unique_grants_df[unique_grants_df['funder_name'] == selected_funder]
+
+    # Explode the selected affinity factor column
+    exploded_funder_df = funder_grants_df.assign(
+        **{selected_affinity_factor: funder_grants_df[selected_affinity_factor].str.split(';')}).explode(
+        selected_affinity_factor)
+
+    funder_affinity = exploded_funder_df.groupby(selected_affinity_factor)['amount_usd'].sum().reset_index()
+    funder_affinity = funder_affinity.sort_values('amount_usd', ascending=False)
+
+    fig = px.bar(funder_affinity, x=selected_affinity_factor, y='amount_usd',
+                 title=f"Funder Affinity: {selected_funder} - {selected_affinity_factor}")
+    fig.update_layout(xaxis_title=selected_affinity_factor, yaxis_title='Total Award Amount (USD)',
+                      width=800, height=600, xaxis_tickangle=-45, xaxis_tickfont=dict(size=10))
+
+    st.plotly_chart(fig)
+
+    # Display the underlying data for further analysis
+    if st.checkbox("Show Underlying Data"):
+        st.write(unique_grants_df)
+
+    if st.button("Download Data as CSV"):
+        csv = unique_grants_df.to_csv(index=False)
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="grant_data.csv">Download CSV File</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
 elif selected_chart == "Top Categories by Unique Grant Count":
-    # Set the header of the Streamlit page to "Top Categories by Unique Grant Count"
     st.header("Top Categories by Unique Grant Count")
+    st.write("Explore the distribution of unique grant counts across different categorical variables.")
 
-    # Define the key categorical columns to be used in the analysis
     key_categorical_columns = ['funder_type', 'recip_organization_tran', 'grant_subject_tran', 'grant_population_tran',
                                'grant_strategy_tran', 'year_issued']
 
-    # Create a select box in Streamlit for the user to select a categorical variable
-    selected_categorical = st.selectbox("Select Categorical Variable", options=key_categorical_columns)
+    col1, col2 = st.columns(2)
 
-    # Group the DataFrame by the selected categorical variable and count the unique 'grant_key' values
-    # Sort the resulting Series in descending order and reset the index
+    with col1:
+        selected_categorical = st.selectbox("Select Categorical Variable", options=key_categorical_columns)
+        top_n = st.slider("Number of Top Categories", min_value=5, max_value=20, value=10, step=1)
+
+    with col2:
+        chart_type = st.selectbox("Select Chart Type", options=["Bar Chart", "Pie Chart", "Treemap"])
+        sort_order = st.radio("Sort Order", options=["Descending", "Ascending"])
+
     normalized_counts = df.groupby(selected_categorical)['grant_key'].nunique().sort_values(
-        ascending=False).reset_index()
-
-    # Rename the columns of the DataFrame
+        ascending=(sort_order == "Ascending")).reset_index()
     normalized_counts.columns = [selected_categorical, 'Unique Grant Keys']
-
-    # Create a new column 'truncated_col' in the DataFrame that contains the values of the selected categorical variable
-    # truncated to a maximum width of 30 characters
     normalized_counts['truncated_col'] = normalized_counts[selected_categorical].apply(
         lambda x: shorten(x, width=30, placeholder="..."))
 
-    # Create a horizontal bar chart of the top 10 categories in the selected categorical variable
-    fig = px.bar(normalized_counts.head(10), x='Unique Grant Keys', y='truncated_col', orientation='h',
-                 title=f"Top 10 Categories in {selected_categorical}")
+    if chart_type == "Bar Chart":
+        fig = px.bar(normalized_counts.head(top_n), x='Unique Grant Keys', y='truncated_col', orientation='h',
+                     title=f"Top {top_n} Categories in {selected_categorical}", hover_data={selected_categorical: True})
+        fig.update_layout(yaxis_title=selected_categorical, margin=dict(l=0, r=0, t=30, b=0))
+    elif chart_type == "Pie Chart":
+        fig = px.pie(normalized_counts.head(top_n), values='Unique Grant Keys', names='truncated_col',
+                     title=f"Distribution of Unique Grant Keys Across Top {top_n} Categories in {selected_categorical}")
+    else:  # Treemap
+        fig = px.treemap(normalized_counts.head(top_n), path=['truncated_col'], values='Unique Grant Keys',
+                         title=f"Treemap of Unique Grant Keys Across Top {top_n} Categories in {selected_categorical}")
 
-    # Update the layout of the figure
-    fig.update_layout(yaxis_title=selected_categorical)
-
-    # Display the figure in Streamlit
     st.plotly_chart(fig)
 
-    # Display the percentage of total unique grants that the top 10 categories account for
     st.write(
-        f"Top 10 Categories account for {normalized_counts.head(10)['Unique Grant Keys'].sum() / normalized_counts['Unique Grant Keys'].sum():.2%} of total unique grants")
+        f"Top {top_n} Categories account for {normalized_counts.head(top_n)['Unique Grant Keys'].sum() / normalized_counts['Unique Grant Keys'].sum():.2%} of total unique grants")
 
-    # Check if the user has checked the "Show Grants for Selected {selected_categorical} Category" checkbox
-    # The checkbox label is dynamically generated based on 'selected_categorical'
-    if st.checkbox(f"Show Grants for Selected {selected_categorical} Category"):
-        # If the checkbox is checked, create a select box for the user to select a category
-        # The options for the select box are the truncated categories in the 'normalized_counts' DataFrame
+    expander = st.expander(f"Show Grants for Selected {selected_categorical} Category")
+    with expander:
         selected_category = st.selectbox(f"Select {selected_categorical} Category",
-                                         options=normalized_counts['truncated_col'])
+                                         options=normalized_counts[selected_categorical])
 
-        # Filter the DataFrame to include only rows where 'selected_categorical' equals the selected category
-        category_grants = df[df[selected_categorical] == selected_category]
+        category_grants = df[df[selected_categorical] == selected_category].drop_duplicates(subset=['grant_key'])
 
-        # Write "Grant Descriptions:" to the Streamlit page
-        st.write("Grant Descriptions:")
-        # Iterate over each row in the filtered DataFrame
-        for _, row in category_grants.iterrows():
-            # For each row, write the grant key and grant description to the Streamlit page
-            st.write(f"- Grant Key: {row['grant_key']}")
-            st.write(f"  Description: {row['grant_description']}")
-            # Write a separator line to the Streamlit page
-            st.write("---")
+        if not category_grants.empty:
+            st.write(f"### Grant Details for {selected_category}:")
+            grant_details = category_grants[['grant_key', 'grant_description', 'amount_usd', 'recip_organization_tran', 'year_issued']]
+            st.dataframe(grant_details)
+        else:
+            st.write(f"No grants found for the selected category: {selected_category}")
 
-    # If the user clicks the button to download data for the chart
     if st.button("Download Data for Chart"):
-        # Create a BytesIO object to hold the Excel data
         output = BytesIO()
-
-        # Create a Pandas ExcelWriter object with the BytesIO object as the target
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
-
-        # Write the DataFrame to the ExcelWriter object
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-
-        # Close the ExcelWriter object
+        normalized_counts.to_excel(writer, index=False, sheet_name='Top Categories')
+        category_grants.to_excel(writer, index=False, sheet_name='Grants for Selected Category')
         writer.close()
-
-        # Reset the position of the BytesIO object to the beginning
         output.seek(0)
-
-        # Encode the BytesIO object as base64
         b64 = base64.b64encode(output.read()).decode()
-
-        # Create a download link for the Excel file
         href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="grants_data_chart.xlsx">Download Excel File</a>'
-
-        # Display the download link in Streamlit
         st.markdown(href, unsafe_allow_html=True)
