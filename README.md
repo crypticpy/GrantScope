@@ -1,8 +1,8 @@
-# Grant Data Exploration Dashboard
+# GrantScope the Grant Data Exploration Dashboard
 
 ## Overview
 
-The Grant Data Exploration Dashboard is an interactive tool designed to aid grant analysts, grant writers, and individuals in comprehensively understanding and analyzing complex grant data. This tool leverages advanced data processing and visualization techniques to extract actionable insights from grant datasets, facilitating easier identification of funding opportunities, understanding funding trends, and enhancing grant writing and analysis efforts.
+GrantScope is an interactive tool designed to aid grant analysts, grant writers, and individuals in comprehensively understanding and analyzing complex grant data. This tool leverages advanced data processing and visualization techniques to extract actionable insights from grant datasets, facilitating easier identification of funding opportunities, understanding funding trends, and enhancing grant writing and analysis efforts.
 
 ## Features
 
