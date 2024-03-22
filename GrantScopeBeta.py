@@ -305,6 +305,8 @@ if selected_chart == "Data Summary":
     This page serves as a glimpse into insights you can uncover using GrantScope. Feel free to explore the other pages of the application by using the menu on the left. From there you can dive deeper into specific aspects of the grant data, such as analyzing trends over time or examining population distributions.
 
     Happy exploring and best of luck with your grant related endeavors!
+    
+    This app was produced with Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solution such as Open ai GPT-4 and Claude Opus were used to generate portions of the source code.
     """)
 # Grant Amount Distribution by USD Cluster
 elif selected_chart == "Grant Amount Distribution":
