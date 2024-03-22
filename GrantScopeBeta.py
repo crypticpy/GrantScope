@@ -407,7 +407,6 @@ elif selected_chart == "Grant Amount Scatter Plot":
 
     filtered_df = filtered_df[filtered_df['amount_usd_cluster'].isin(selected_clusters)]
 
-    color_scheme = st.selectbox("Color Scheme", options=["viridis", "plasma", "inferno", "magma", "cividis"])
     marker_size = st.slider("Marker Size", min_value=1, max_value=20, value=5)
     opacity = st.slider("Opacity", min_value=0.1, max_value=1.0, value=0.8, step=0.1)
 
@@ -417,7 +416,6 @@ elif selected_chart == "Grant Amount Scatter Plot":
         y='amount_usd',
         color='amount_usd_cluster',
         hover_data=['grant_key', 'grant_description'],
-        color_continuous_scale=color_scheme,
         opacity=opacity
     )
 
