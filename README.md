@@ -1,30 +1,53 @@
-# GrantScope the Grant Analysis Dashboard
+# Grant Data Exploration Dashboard
 
-The GrantScope is a powerful tool designed to help grant analysts and writers explore and analyze grant data effectively. By leveraging the capabilities of this dashboard utility, users can gain valuable insights into funding opportunities, identify trends, and make informed decisions when writing grant proposals or seeking funding sources.
+## Overview
+
+The Grant Data Exploration Dashboard is an interactive tool designed to aid grant analysts, grant writers, and individuals in comprehensively understanding and analyzing complex grant data. This tool leverages advanced data processing and visualization techniques to extract actionable insights from grant datasets, facilitating easier identification of funding opportunities, understanding funding trends, and enhancing grant writing and analysis efforts.
 
 ## Features
 
-- **Data Summary**: Get a high-level overview of the grant data, including the total number of unique grants, funders, and recipients. Explore the top funders by total grant amount and the grant distribution by funder type.
+### Interactive Data Visualizations
 
-- **Grant Amount Distribution**: Visualize the distribution of grant amounts across different USD clusters. Filter the data based on specific USD clusters, grant subjects, populations, and strategies to focus on areas of interest.
+- **Data Summary**: Offers a concise overview of the dataset, including total counts of unique grants, funders, and recipients. Visualize the top funders by total grant amount and understand the distribution of grants by funder type.
 
-- **Grant Amount Scatter Plot**: Analyze the relationship between grant amounts and years through an interactive scatter plot. Select specific year ranges and USD clusters to identify patterns and trends over time.
+- **Grant Amount Visualizations**: Explore grant amounts through various lenses using interactive charts. Users can examine the distribution of grant amounts across different USD clusters, observe trends over time with scatter plots, and analyze grant amounts across geographical regions and subject areas using heatmaps.
 
-- **Grant Amount Heatmap**: Gain insights into the distribution of grant amounts across different dimensions such as grant subjects, populations, and strategies. Customize the heatmap by selecting the desired dimensions and explore the underlying data for specific cells.
+- **Word Clouds**: Visualize the most common themes and keywords in grant descriptions across different segments, providing insights into the focus areas of funders and the nature of funded projects.
 
-- **Grant Description Word Clouds**: Discover the most frequently used words in grant descriptions for different USD clusters. Word clouds provide a visual representation of key terms and themes, helping you identify common areas of focus within each cluster.
+- **Treemaps**: Investigate the allocation of grant amounts by subject, population, and strategy. Treemaps allow for a hierarchical exploration of how funds are distributed among different categories.
 
-- **Treemaps by Subject, Population, and Strategy**: Visualize the hierarchical structure of grant amounts based on grant subjects, populations, and strategies. Treemaps allow you to quickly identify the most significant categories and drill down into specific areas for detailed analysis.
+### Detailed Analysis Tools
 
-- **Univariate Analysis of Numeric Columns**: Perform univariate analysis on numeric columns to understand the distribution and characteristics of grant data. Explore histograms, boxplots, and summary statistics for selected numeric variables.
+- **Univariate Analysis**: Perform detailed statistical analysis on numeric columns to understand the distribution, variability, and central tendencies of grant amounts and other numerical data points.
 
-- **Top Categories by Unique Grant Count**: Identify the top categories within key categorical variables such as funder type, recipient organization, grant subject, population, strategy, and year. Analyze the percentage of total unique grants accounted for by the top categories and explore grants within selected categories.
+- **Grant Relationship Analysis**: Explore the relationships between funders and recipients, grant amounts, and project subjects or populations served. This feature allows users to uncover patterns and connections within the grant ecosystem.
 
-## Getting Started
+- **Grant Descriptions Deep Dive**: Dive into the details of grant descriptions using text analysis tools. Identify frequently used terms, analyze sentiment, and extract thematic clusters to gain a deeper understanding of grant narratives.
 
-To get started with the Grant Analysis Dashboard, follow these steps:
+## User Roles and Customization
 
-## Lite Web version available at grantscope.streamlit.app
+The dashboard supports different user roles, providing tailored experiences for grant analysts/writers and general users:
+
+- **Grant Analyst/Writer**: Access to advanced analytics features, including detailed relationship analysis, trend analysis over time, and custom data filters for in-depth research.
+
+- **Normal Grant User**: A simplified interface focusing on key visualizations such as data summaries, basic grant amount distributions, and word clouds, suitable for users seeking a general overview of the grant landscape.
+
+## Downloadable Reports and Data
+
+Users can download customized reports and data extracts based on their analysis, enabling offline review and integration into grant proposals or reports. This feature supports Excel and CSV formats for easy use in various applications.
+
+## How to Use the Dashboard
+
+- Start by uploading your grant data file or using the preloaded dataset.
+- Select your user role to customize the dashboard experience according to your needs.
+- Explore the dashboard sections to visualize and analyze grant data. Utilize filters and interactive elements to tailor the analysis.
+- Download data extracts and reports for further use.
+
+## Technology Stack
+
+This dashboard is built using Streamlit, enabling an interactive web application experience. Data visualization is powered by Plotly and Matplotlib for dynamic and static charts, respectively. Pandas and NumPy are used for data manipulation and analysis, while advanced text processing features leverage natural language processing libraries.
+
+## Web version available at grantscope.streamlit.app
 
 ## Run on your own resources
 
