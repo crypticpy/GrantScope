@@ -25,17 +25,6 @@ uploaded_file = None
 st.set_page_config(page_title="GrantScope", page_icon=":chart_with_upwards_trend:")
 
 
-def download_excel(df, filename):
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Sheet1')
-    writer.close()
-    output.seek(0)
-    b64 = base64.b64encode(output.read()).decode()
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">Download Excel File</a>'
-    st.markdown(href, unsafe_allow_html=True)
-
-
 def main():
     init_session_state()
 
