@@ -1,3 +1,4 @@
 .env
 getcode.sh
 old/
+.idea/
