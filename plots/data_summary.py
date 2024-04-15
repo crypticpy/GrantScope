@@ -2,6 +2,8 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 
+from utils.utils import generate_page_prompt
+from loaders.llama_index_setup import query_data
 
 def data_summary(df, grouped_df, selected_chart, selected_role):
     if selected_chart == "Data Summary":
@@ -33,6 +35,36 @@ def data_summary(df, grouped_df, selected_chart, selected_role):
         fig = px.bar(top_funders, x='funder_name', y='amount_usd', title=f"Top {top_n} Funders by Total Grant Amount")
         fig.update_layout(xaxis_title='Funder Name', yaxis_title='Total Grant Amount (USD)')
         st.plotly_chart(fig)
+
+        st.subheader("Top Funders AI Chat Analysis")
+        st.write("Ask questions about the top funders and their grant amounts.")
+
+        # Generate the custom prompt for the top funders chart
+        additional_context = f"the top {top_n} funders by total grant amount"
+        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+
+        # Predefined questions for top funders
+        query_options = [
+            "Which funder has the highest total grant amount?",
+            "What is the average grant amount for the top 5 funders?",
+            "Are there any notable trends or patterns among the top funders?"
+        ]
+
+        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                      ["Custom Question"] + query_options, key="top_funders_query")
+
+        if selected_query == "Custom Question":
+            user_query = st.text_input("Enter your question here:", key="top_funders_user_query")
+            query_text = user_query
+        else:
+            query_text = selected_query
+
+        if st.button("Submit", key="top_funders_submit"):
+            if query_text:
+                response = query_data(top_funders, query_text, pre_prompt)
+                st.markdown(response)
+            else:
+                st.warning("Please enter a question or select a predefined question.")
 
         if st.checkbox("Show Top Funders Data Table"):
             st.write(top_funders)
@@ -83,6 +115,36 @@ def data_summary(df, grouped_df, selected_chart, selected_role):
                      title="Top 10 Populations Served by Total Grant Amount")
         fig.update_layout(xaxis_title='Population Served', yaxis_title='Total Grant Amount (USD)')
         st.plotly_chart(fig)
+
+        st.subheader("General AI Chat Analysis")
+        st.write("Ask general questions about the grant dataset.")
+
+        # Generate the custom prompt for general data analysis
+        additional_context = "the overall grant dataset, including funders, recipients, grant amounts, subject areas, and populations served"
+        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+
+        # Predefined questions for general data analysis
+        query_options = [
+            "What are the key insights from the grant dataset?",
+            "How has the distribution of grant amounts changed over time?",
+            "Are there any correlations between subject areas and populations served?"
+        ]
+
+        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                      ["Custom Question"] + query_options, key="general_query")
+
+        if selected_query == "Custom Question":
+            user_query = st.text_input("Enter your question here:", key="general_user_query")
+            query_text = user_query
+        else:
+            query_text = selected_query
+
+        if st.button("Submit", key="general_submit"):
+            if query_text:
+                response = query_data(df, query_text, pre_prompt)
+                st.markdown(response)
+            else:
+                st.warning("Please enter a question or select a predefined question.")
 
         st.write("""
         This page serves as a glimpse into insights you can uncover using GrantScope. Feel free to explore the other plots of the application by using the menu on the left. From there you can dive deeper into specific aspects of the grant data, such as analyzing trends over time or examining population distributions.

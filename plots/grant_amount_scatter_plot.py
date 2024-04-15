@@ -1,11 +1,12 @@
-import streamlit as st
-import plotly.express as px
 import pandas as pd
-from utils import download_csv
+import plotly.express as px
+import streamlit as st
 
+from utils.utils import download_csv, generate_page_prompt
+from loaders.llama_index_setup import query_data
 
 def grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role):
-    if selected_chart == "Grant Amount Scatter Plot":
+    if selected_chart == "Grant Amount Scatter Plot w AI Chat":
         st.header("Grant Amount Scatter Plot")
         st.write("""
         Welcome to the Grant Amount Scatter Plot page! This interactive visualization allows you to explore the distribution of grant amounts over time.
@@ -80,9 +81,42 @@ def grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role):
 
         st.plotly_chart(fig)
 
-        if st.checkbox("Show Underlying Data"):
-            st.write(filtered_df)
+        # AI-Assisted Chat
+        st.subheader("AI-Assisted Chart Exploration")
+        st.write("Ask questions about the Grant Amount Scatter Plot to gain insights and explore the data further.")
 
+        # Generate the custom prompt for the current page
+        additional_context = f"the distribution of grant amounts over time, with data filtered by USD clusters ({', '.join(selected_clusters)}) and year range ({start_year} to {end_year})"
+        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+
+        # Predefined questions
+        query_options = [
+            "What are the overall trends in grant amounts over the selected time period?",
+            "Which USD cluster has the highest average grant amount?",
+            "Are there any outliers or unusual patterns in the scatter plot?",
+            "How does the distribution of grant amounts vary across different years?",
+            "What insights can we gain from the grant descriptions of the larger grant amounts?"
+        ]
+
+        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                      ["Custom Question"] + query_options)
+
+        if selected_query == "Custom Question":
+            # Allow users to enter their own question
+            user_query = st.text_input("Enter your question here:")
+            query_text = user_query
+        else:
+            query_text = selected_query
+
+        # Button to submit the query
+        if st.button("Submit"):
+            if query_text:
+                response = query_data(filtered_df, query_text, pre_prompt)
+                st.markdown(response)
+            else:
+                st.warning("Please enter a question or select a predefined question.")
+
+        # Download Data as CSV
         if st.button("Download Data as CSV"):
             output = download_csv(filtered_df, "grants_data_chart.csv")
             st.markdown(output, unsafe_allow_html=True)

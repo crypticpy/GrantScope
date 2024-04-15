@@ -1,6 +1,6 @@
 import streamlit as st
 import plotly.express as px
-from utils import download_csv
+from utils.utils import download_csv
 
 
 def general_analysis_relationships(df, grouped_df, selected_chart, selected_role):

@@ -1,4 +1,6 @@
 import streamlit as st
+import os
+import openai
 from loaders.data_loader import load_data, preprocess_data
 from plots.data_summary import data_summary
 from plots.grant_amount_distribution import grant_amount_distribution
@@ -29,7 +31,19 @@ def main():
     init_session_state()
 
     file_path = 'old/fixed_ovp.json'
-    uploaded_file = st.sidebar.file_uploader("Upload Candid API JSON File", type="json")
+    uploaded_file = st.sidebar.file_uploader("Upload Candid API JSON File 10MB or less", accept_multiple_files=False, type="json")
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        api_key = st.sidebar.text_input("Enter your GPT-4 API Key:", type="password")
+
+    if not api_key:
+        st.warning(
+            "Please set the OPENAI_API_KEY environment variable or enter your GPT-4 API key to use the AI features.")
+        return
+
+    openai.api_key = api_key
 
     if uploaded_file is not None:
         grants = load_data(uploaded_file=uploaded_file)

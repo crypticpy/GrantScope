@@ -4,3 +4,9 @@ plotly
 matplotlib
 wordcloud
 xlsxwriter
+langchain
+llama-index
+streamlit
+plotly-express
+python-dotenv
+llama-index-experimental

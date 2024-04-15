@@ -1,7 +1,6 @@
 import streamlit as st
 import plotly.express as px
-import pandas as pd
-from utils import download_excel
+from utils.utils import download_excel
 
 
 def treemaps_extended_analysis(df, grouped_df, selected_chart, selected_role):

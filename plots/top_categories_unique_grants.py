@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from textwrap import shorten
-from utils import download_excel
+from utils.utils import download_excel
 
 
 def top_categories_unique_grants(df, grouped_df, selected_chart, selected_role):
