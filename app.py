@@ -30,7 +30,7 @@ st.set_page_config(page_title="GrantScope", page_icon=":chart_with_upwards_trend
 def main():
     init_session_state()
 
-    file_path = 'old/fixed_ovp.json'
+    file_path = 'data/sample.json'
     uploaded_file = st.sidebar.file_uploader("Upload Candid API JSON File 10MB or less", accept_multiple_files=False, type="json")
 
     api_key = os.getenv("OPENAI_API_KEY")
