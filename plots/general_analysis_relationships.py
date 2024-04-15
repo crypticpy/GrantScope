@@ -1,9 +1,10 @@
-import streamlit as st
 import plotly.express as px
+import streamlit as st
+
 from utils.utils import download_csv
 
 
-def general_analysis_relationships(df, grouped_df, selected_chart, selected_role):
+def general_analysis_relationships(df, grouped_df, selected_chart, selected_role, ai_enabled):
     if selected_chart == "General Analysis of Relationships":
         st.header("General Analysis of Relationships")
         st.write("""

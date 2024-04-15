@@ -1,9 +1,10 @@
-import streamlit as st
 import plotly.express as px
+import streamlit as st
+
 from utils.utils import download_excel
 
 
-def treemaps_extended_analysis(df, grouped_df, selected_chart, selected_role):
+def treemaps_extended_analysis(df, grouped_df, selected_chart, selected_role, ai_enabled):
     if selected_chart == "Treemaps with Extended Analysis":
         usd_range_options = ['All'] + sorted(grouped_df['amount_usd_cluster'].unique())
 

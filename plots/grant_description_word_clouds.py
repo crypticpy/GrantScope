@@ -1,10 +1,12 @@
-import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
+import streamlit as st
 from wordcloud import WordCloud, STOPWORDS
 
+from loaders.llama_index_setup import query_data
+from utils.utils import download_excel, generate_page_prompt
 
-def grant_description_word_clouds(df, grouped_df, selected_chart, selected_role):
+
+def grant_description_word_clouds(df, grouped_df, selected_chart, selected_role, ai_enabled):
     if selected_chart == "Grant Description Word Clouds":
         st.header("Grant Description Word Clouds")
         st.write("""
@@ -20,15 +22,19 @@ def grant_description_word_clouds(df, grouped_df, selected_chart, selected_role)
                                 'The',
                                 'a', 'A', 'by', 'By', 'in', 'In', 'for', 'For', 'with', 'With', 'on', 'On', 'is', 'Is',
                                 'that', 'That', 'are', 'Are', 'as', 'As', 'be', 'Be', 'this', 'This', 'will', 'Will',
-                                'at', 'Generally', 'generally', 'from', 'From', 'or', 'Or', 'an', 'An', 'which', 'Which',
+                                'at', 'Generally', 'generally', 'from', 'From', 'or', 'Or', 'an', 'An', 'which',
+                                'Which',
                                 'At', 'from', 'From', 'or', 'Or', 'an', 'An', 'which', 'Which', 'have', 'Have', 'it',
-                                'It', 'general', 'General', 'GENERAL', 'can', 'Can', 'more', 'More', 'has', 'Has', 'their',
+                                'It', 'general', 'General', 'GENERAL', 'can', 'Can', 'more', 'More', 'has', 'Has',
+                                'their',
                                 'not', 'Not', 'who', 'Who', 'their', 'Their', 'we', 'We', 'support', 'Support',
-                                'project', 'grant', 'GRANT', 'Grant', 'funding', 'funded', 'funds', 'fund', 'funder', 'recipient', 'area',
+                                'project', 'grant', 'GRANT', 'Grant', 'funding', 'funded', 'funds', 'fund', 'funder',
+                                'recipient', 'area',
                                 'Project'}
         stopwords.update(additional_stopwords)
 
-        cloud_basis_options = ['Entire Dataset', 'Subject', 'Population', 'Strategy', 'Funder', 'Recipient', 'Geographical Area', 'Description']
+        cloud_basis_options = ['Entire Dataset', 'Subject', 'Population', 'Strategy', 'Funder', 'Recipient',
+                               'Geographical Area', 'Description']
         selected_basis = st.selectbox("Select the basis for generating word clouds:", options=cloud_basis_options)
 
         if selected_basis == 'Entire Dataset':
@@ -65,6 +71,44 @@ def grant_description_word_clouds(df, grouped_df, selected_chart, selected_role)
                 ax.set_title(f'Word Cloud for {selected_basis}: {value}')
                 st.pyplot(fig)
                 plt.close(fig)
+        if ai_enabled:
+            st.subheader("Grant Description Analysis with GPT-4 Assistant")
+            st.write("Ask questions about the grant descriptions to gain insights and explore the data further.")
+
+            # Generate the custom prompt for the current page
+            additional_context = f"the word clouds and search functionality for grant descriptions"
+            pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+
+            # Predefined questions
+            query_options = [
+                "What are the most common themes or topics mentioned in the grant descriptions which are not stopwords?",
+                "Are there any unexpected differences in the grant descriptions across different subjects, populations, or strategies?",
+                "How do the grant descriptions vary between different funders or recipients?",
+                "Can you identify any patterns or trends in the grant descriptions over time based on year_issued?"
+            ]
+
+            selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                          ["Custom Question"] + query_options)
+
+            if selected_query == "Custom Question":
+                # Allow users to enter their own question
+                user_query = st.text_input("Enter your question here:")
+                query_text = user_query
+            else:
+                query_text = selected_query
+
+            # Button to submit the query
+            if st.button("Submit"):
+                if query_text:
+                    response = query_data(grouped_df, query_text, pre_prompt)
+                    st.markdown(response)
+                else:
+                    st.warning("Please enter a question or select a predefined question.")
+
+        else:
+            st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
+
+        st.divider()
 
         st.subheader("Search Grant Descriptions")
         st.write("Type words into the box below to search all grant descriptions for specific words.")

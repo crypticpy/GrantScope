@@ -2,14 +2,15 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from utils.utils import download_csv, generate_page_prompt
 from loaders.llama_index_setup import query_data
+from utils.utils import download_csv, generate_page_prompt
 
-def grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role):
-    if selected_chart == "Grant Amount Scatter Plot w AI Chat":
+
+def grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role, ai_enabled):
+    if selected_chart == "Grant Amount Scatter Plot":
         st.header("Grant Amount Scatter Plot")
         st.write("""
-        Welcome to the Grant Amount Scatter Plot page! This interactive visualization allows you to explore the distribution of grant amounts over time.
+        Welcome to the Grant Amount Scatter Plot page! This AI interactive visualization allows you to explore the distribution of grant amounts over time with support from GPT-4.
         
         This visualization makes it easy to spot trends and patterns in grant amounts across different USD clusters.
 
@@ -81,40 +82,44 @@ def grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role):
 
         st.plotly_chart(fig)
 
-        # AI-Assisted Chat
-        st.subheader("AI-Assisted Chart Exploration")
-        st.write("Ask questions about the Grant Amount Scatter Plot to gain insights and explore the data further.")
+        if ai_enabled:
 
-        # Generate the custom prompt for the current page
-        additional_context = f"the distribution of grant amounts over time, with data filtered by USD clusters ({', '.join(selected_clusters)}) and year range ({start_year} to {end_year})"
-        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+            # AI-Assisted Chat
+            st.subheader("Scatter Plot Exploration with GPT-4 Assistant")
+            st.write("Ask questions about the Grant Amount Scatter Plot to gain insights and explore the data further.")
 
-        # Predefined questions
-        query_options = [
-            "What are the overall trends in grant amounts over the selected time period?",
-            "Which USD cluster has the highest average grant amount?",
-            "Are there any outliers or unusual patterns in the scatter plot?",
-            "How does the distribution of grant amounts vary across different years?",
-            "What insights can we gain from the grant descriptions of the larger grant amounts?"
-        ]
+            # Generate the custom prompt for the current page
+            additional_context = f"the distribution of grant amounts over time, with data filtered by USD clusters ({', '.join(selected_clusters)}) and year range ({start_year} to {end_year})"
+            pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
 
-        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
-                                      ["Custom Question"] + query_options)
+            # Predefined questions
+            query_options = [
+                "What are the overall trends in grant amounts over the selected time period?",
+                "Which USD cluster has the highest average grant amount?",
+                "Are there any outliers or unusual patterns in the scatter plot?",
+                "How does the distribution of grant amounts vary across different years?",
+                "What insights can we gain from the grant descriptions of the larger grant amounts?"
+            ]
 
-        if selected_query == "Custom Question":
-            # Allow users to enter their own question
-            user_query = st.text_input("Enter your question here:")
-            query_text = user_query
-        else:
-            query_text = selected_query
+            selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                          ["Custom Question"] + query_options)
 
-        # Button to submit the query
-        if st.button("Submit"):
-            if query_text:
-                response = query_data(filtered_df, query_text, pre_prompt)
-                st.markdown(response)
+            if selected_query == "Custom Question":
+                # Allow users to enter their own question
+                user_query = st.text_input("Enter your question here:")
+                query_text = user_query
             else:
-                st.warning("Please enter a question or select a predefined question.")
+                query_text = selected_query
+
+            # Button to submit the query
+            if st.button("Submit"):
+                if query_text:
+                    response = query_data(filtered_df, query_text, pre_prompt)
+                    st.markdown(response)
+                else:
+                    st.warning("Please enter a question or select a predefined question.")
+        else:
+            st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
 
         # Download Data as CSV
         if st.button("Download Data as CSV"):

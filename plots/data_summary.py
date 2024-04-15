@@ -5,13 +5,15 @@ import pandas as pd
 from utils.utils import generate_page_prompt
 from loaders.llama_index_setup import query_data
 
-def data_summary(df, grouped_df, selected_chart, selected_role):
+def data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled):
     if selected_chart == "Data Summary":
-        st.header("Data Summary")
+        st.header("Introduction")
         st.write("""
-        Welcome to the GrantScope Tool! This powerful application is designed to assist grant writers and analysts in navigating and extracting insights from a comprehensive grant dataset. By leveraging the capabilities of this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information to enhance your grant proposals.
+        Welcome to the GrantScope Tool! This powerful prototype application is designed to assist grant writers and analysts in navigating and extracting insights from a complex grant dataset. By leveraging the capabilities of this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information.
 
-        The preloaded dataset encompasses a wide range of information, including details about funders, recipients, grant amounts, subject areas, populations served, and more. With this tool, you can explore the data through interactive visualizations, filter and search for specific grants, and download relevant data for further analysis.
+        The application has select pages which have been enhanced with experimental features from Llama-Index's QueryPipeline for Pandas Dataframes, and OpenAI GPT-4 to provide you with additional insights and analysis. You can interact with the AI assistant to ask questions, generate summaries, and explore the data in a more intuitive manner.
+        
+        The preloaded dataset encompasses a small sample of grant data, including details about funders, recipients, grant amounts, subject areas, populations served, and more. With this tool, you can explore the data through interactive visualizations, filter and search for specific grants, and download relevant data for further analysis.
 
         """)
 
@@ -36,35 +38,39 @@ def data_summary(df, grouped_df, selected_chart, selected_role):
         fig.update_layout(xaxis_title='Funder Name', yaxis_title='Total Grant Amount (USD)')
         st.plotly_chart(fig)
 
-        st.subheader("Top Funders AI Chat Analysis")
-        st.write("Ask questions about the top funders and their grant amounts.")
+        if ai_enabled:
 
-        # Generate the custom prompt for the top funders chart
-        additional_context = f"the top {top_n} funders by total grant amount"
-        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+            st.subheader("Top Funders Analysis with GPT-4 AI Assistant")
+            st.write("Ask questions about the top funders and their grant amounts.")
 
-        # Predefined questions for top funders
-        query_options = [
-            "Which funder has the highest total grant amount?",
-            "What is the average grant amount for the top 5 funders?",
-            "Are there any notable trends or patterns among the top funders?"
-        ]
+            # Generate the custom prompt for the top funders chart
+            additional_context = f"the top {top_n} funders by total grant amount"
+            pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
 
-        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
-                                      ["Custom Question"] + query_options, key="top_funders_query")
+            # Predefined questions for top funders
+            query_options = [
+                "Which funder has the highest total grant amount?",
+                "What is the average grant amount for the top 5 funders?",
+                "Are there any notable trends or patterns among the top funders?"
+            ]
 
-        if selected_query == "Custom Question":
-            user_query = st.text_input("Enter your question here:", key="top_funders_user_query")
-            query_text = user_query
-        else:
-            query_text = selected_query
+            selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                          ["Custom Question"] + query_options, key="top_funders_query")
 
-        if st.button("Submit", key="top_funders_submit"):
-            if query_text:
-                response = query_data(top_funders, query_text, pre_prompt)
-                st.markdown(response)
+            if selected_query == "Custom Question":
+                user_query = st.text_input("Enter your question here:", key="top_funders_user_query")
+                query_text = user_query
             else:
-                st.warning("Please enter a question or select a predefined question.")
+                query_text = selected_query
+
+            if st.button("Submit", key="top_funders_submit"):
+                if query_text:
+                    response = query_data(top_funders, query_text, pre_prompt)
+                    st.markdown(response)
+                else:
+                    st.warning("Please enter a question or select a predefined question.")
+        else:
+            st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
 
         if st.checkbox("Show Top Funders Data Table"):
             st.write(top_funders)
@@ -116,35 +122,41 @@ def data_summary(df, grouped_df, selected_chart, selected_role):
         fig.update_layout(xaxis_title='Population Served', yaxis_title='Total Grant Amount (USD)')
         st.plotly_chart(fig)
 
-        st.subheader("General AI Chat Analysis")
-        st.write("Ask general questions about the grant dataset.")
+        if ai_enabled:
 
-        # Generate the custom prompt for general data analysis
-        additional_context = "the overall grant dataset, including funders, recipients, grant amounts, subject areas, and populations served"
-        pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
+            st.subheader("General Analysis with GPT-4 Assistant")
+            st.write("Ask general questions about the grant dataset.")
 
-        # Predefined questions for general data analysis
-        query_options = [
-            "What are the key insights from the grant dataset?",
-            "How has the distribution of grant amounts changed over time?",
-            "Are there any correlations between subject areas and populations served?"
-        ]
+            # Generate the custom prompt for general data analysis
+            additional_context = "the overall grant dataset, including funders, recipients, grant amounts, subject areas, and populations served"
+            pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
 
-        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
-                                      ["Custom Question"] + query_options, key="general_query")
+            # Predefined questions for general data analysis
+            query_options = [
+                "What are the key insights from the grant dataset?",
+                "How has the distribution of grant amounts changed over time?",
+                "Are there any correlations between subject areas and populations served?"
+            ]
 
-        if selected_query == "Custom Question":
-            user_query = st.text_input("Enter your question here:", key="general_user_query")
-            query_text = user_query
-        else:
-            query_text = selected_query
+            selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
+                                          ["Custom Question"] + query_options, key="general_query")
 
-        if st.button("Submit", key="general_submit"):
-            if query_text:
-                response = query_data(df, query_text, pre_prompt)
-                st.markdown(response)
+            if selected_query == "Custom Question":
+                user_query = st.text_input("Enter your question here:", key="general_user_query")
+                query_text = user_query
             else:
-                st.warning("Please enter a question or select a predefined question.")
+                query_text = selected_query
+
+            if st.button("Submit", key="general_submit"):
+                if query_text:
+                    response = query_data(df, query_text, pre_prompt)
+                    st.markdown(response)
+                else:
+                    st.warning("Please enter a question or select a predefined question.")
+        else:
+            st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
+
+        st.divider()
 
         st.write("""
         This page serves as a glimpse into insights you can uncover using GrantScope. Feel free to explore the other plots of the application by using the menu on the left. From there you can dive deeper into specific aspects of the grant data, such as analyzing trends over time or examining population distributions.

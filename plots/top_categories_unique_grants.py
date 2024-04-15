@@ -1,10 +1,12 @@
-import streamlit as st
-import plotly.express as px
 from textwrap import shorten
+
+import plotly.express as px
+import streamlit as st
+
 from utils.utils import download_excel
 
 
-def top_categories_unique_grants(df, grouped_df, selected_chart, selected_role):
+def top_categories_unique_grants(df, grouped_df, selected_chart, selected_role, ai_enabled):
     if selected_chart == "Top Categories by Unique Grant Count":
         st.header("Top Categories by Unique Grant Count")
         st.write("""

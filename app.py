@@ -38,12 +38,13 @@ def main():
     if not api_key:
         api_key = st.sidebar.text_input("Enter your GPT-4 API Key:", type="password")
 
-    if not api_key:
-        st.warning(
-            "Please set the OPENAI_API_KEY environment variable or enter your GPT-4 API key to use the AI features.")
-        return
-
-    openai.api_key = api_key
+    if api_key:
+        openai.api_key = api_key
+        ai_enabled = True
+    else:
+        ai_enabled = False
+        st.sidebar.warning(
+            "AI features are disabled. Please set the OPENAI_API_KEY environment variable or enter your GPT-4 API key to enable AI-assisted analysis.")
 
     if uploaded_file is not None:
         grants = load_data(uploaded_file=uploaded_file)
@@ -80,21 +81,21 @@ def main():
     st.title("GrantScope Dashboard")
 
     if selected_chart == "Data Summary":
-        data_summary(df, grouped_df, selected_chart, selected_role)
+        data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Grant Amount Distribution":
-        grant_amount_distribution(df, grouped_df, selected_chart, selected_role)
+        grant_amount_distribution(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Grant Amount Scatter Plot":
-        grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role)
+        grant_amount_scatter_plot(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Grant Amount Heatmap":
-        grant_amount_heatmap(df, grouped_df, selected_chart, selected_role)
+        grant_amount_heatmap(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Grant Description Word Clouds":
-        grant_description_word_clouds(df, grouped_df, selected_chart, selected_role)
+        grant_description_word_clouds(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Treemaps with Extended Analysis":
-        treemaps_extended_analysis(df, grouped_df, selected_chart, selected_role)
+        treemaps_extended_analysis(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "General Analysis of Relationships":
-        general_analysis_relationships(df, grouped_df, selected_chart, selected_role)
+        general_analysis_relationships(df, grouped_df, selected_chart, selected_role, ai_enabled)
     elif selected_chart == "Top Categories by Unique Grant Count":
-        top_categories_unique_grants(df, grouped_df, selected_chart, selected_role)
+        top_categories_unique_grants(df, grouped_df, selected_chart, selected_role, ai_enabled)
 
 if __name__ == '__main__':
     main()
