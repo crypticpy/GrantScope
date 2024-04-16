@@ -53,6 +53,8 @@ def generate_page_prompt(df, grouped_df, selected_chart, selected_role, addition
     prompt += observations + " "
     prompt += chart_description + " " + role_description
     prompt += " The user can ask questions related to the current chart and the overall grant data to gain insights and explore the data further."
-    prompt += " Please note that the data is limited to the information provided in the dataset, so queries beyond the available columns may not be answerable."
+    prompt += " Please note that the data is limited to the information provided in the dataset, queries beyond the available columns are not answerable."
+    prompt += " Respond in Markdown format only"
+    prompt += " The users prompt is:"
 
     return prompt

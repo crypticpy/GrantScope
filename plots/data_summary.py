@@ -51,7 +51,7 @@ def data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled):
             query_options = [
                 "Which funder has the highest total grant amount?",
                 "What is the average grant amount for the top 5 funders?",
-                "Are there any notable trends or patterns among the top funders?"
+                "Are there any notable patterns among the top funders not obvious from the chart?"
             ]
 
             selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
