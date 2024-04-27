@@ -6,12 +6,27 @@ from utils.utils import download_excel, generate_page_prompt
 
 
 def grant_amount_distribution(df, grouped_df, selected_chart, selected_role, ai_enabled):
+    """
+       Display and interact with the grant amount distribution visualization.
+
+       Args:
+           df (pd.DataFrame): The original dataset DataFrame.
+           grouped_df (pd.DataFrame): The grouped dataset DataFrame.
+           selected_chart (str): The selected chart type.
+           selected_role (str): The selected user role.
+           ai_enabled (bool): Flag indicating whether AI-powered features are enabled.
+
+       Returns:
+           None
+       """
+
+    # Display the header and description
     st.header("Grant Amount Distribution w AI Chat")
     st.write("""
         Dive into the dynamic landscape of grant funding with our interactive distribution chart. This tool lets you visualize how grants are dispersed across various USD clusters, offering a clear view of funding trends and concentrations. Select different clusters to tailor the data shown and discover patterns at a glance.
         """)
 
-    # Display existing visualizations
+    # Display visualizations
     cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
     selected_clusters = st.multiselect("Select USD Clusters", options=cluster_options, default=cluster_options)
     filtered_df = grouped_df[grouped_df['amount_usd_cluster'].isin(selected_clusters)]
@@ -56,7 +71,12 @@ def grant_amount_distribution(df, grouped_df, selected_chart, selected_role, ai_
                 st.warning("Please enter a question or select a predefined question.")
 
     else:
+        # Inform the user that AI features are disabled
         st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
 
+       # Button to download the data as an Excel file
     if st.button("Download Data for Chart"):
         download_excel(filtered_df, "grants_data_chart.xlsx")
+
+    st.markdown(""" This app was produced by [Christopher Collins](https://www.linkedin.com/in/cctopher/) using the latest methods for enabling AI to Chat with Data. It also uses the Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solutions such as OpenAI GPT-4 and Claude Opus were used to generate portions of the source code.
+                    """)

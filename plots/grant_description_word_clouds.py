@@ -141,3 +141,6 @@ def grant_description_word_clouds(df, grouped_df, selected_chart, selected_role,
 
         Happy exploring!
         """)
+
+        st.markdown(""" This app was produced by [Christopher Collins](https://www.linkedin.com/in/cctopher/) using the latest methods for enabling AI to Chat with Data. It also uses the Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solutions such as OpenAI GPT-4 and Claude Opus were used to generate portions of the source code.
+                """)

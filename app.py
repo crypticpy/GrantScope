@@ -29,7 +29,8 @@ st.set_page_config(page_title="GrantScope", page_icon=":chart_with_upwards_trend
 
 def main():
     init_session_state()
-
+    st.sidebar.markdown("Click to contact me with any questions or feedback!")
+    st.sidebar.markdown('<a href="mailto:dltzshz8@anonaddy.me">Contact the Developer!</a>', unsafe_allow_html=True)
     file_path = 'data/sample.json'
     uploaded_file = st.sidebar.file_uploader("Upload Candid API JSON File 10MB or less", accept_multiple_files=False, type="json")
 

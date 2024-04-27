@@ -1,19 +1,22 @@
-import streamlit as st
-import plotly.express as px
 import pandas as pd
+import plotly.express as px
+import streamlit as st
 
-from utils.utils import generate_page_prompt
 from loaders.llama_index_setup import query_data
+from utils.utils import generate_page_prompt
+
 
 def data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled):
+    """ """
     if selected_chart == "Data Summary":
         st.header("Introduction")
-        st.write("""
-        Welcome to the GrantScope Tool! This powerful prototype application is designed to assist grant writers and analysts in navigating and extracting insights from a complex grant dataset. By leveraging the capabilities of this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information.
+        st.markdown("""
+        Welcome to the GrantScope Tool! This powerful prototype application was built by [Christopher Collins](https://www.linkedin.com/in/cctopher/) to assist grant writers and analysts in navigating and extracting insights from a complex grant dataset. By leveraging the capabilities AI integrated with this tool, you can identify potential funding opportunities, analyze trends, and gain valuable information.
 
         The application has select pages which have been enhanced with experimental features from Llama-Index's QueryPipeline for Pandas Dataframes, and OpenAI GPT-4 to provide you with additional insights and analysis. You can interact with the AI assistant to ask questions, generate summaries, and explore the data in a more intuitive manner.
         
         The preloaded dataset encompasses a small sample of grant data, including details about funders, recipients, grant amounts, subject areas, populations served, and more. With this tool, you can explore the data through interactive visualizations, filter and search for specific grants, and download relevant data for further analysis.
+              
 
         """)
 
@@ -49,7 +52,7 @@ def data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled):
 
             # Predefined questions for top funders
             query_options = [
-                "Which funder has the highest total grant amount?",
+                "Which funder has the highest total grant amount and how much is the award?",
                 "What is the average grant amount for the top 5 funders?",
                 "Are there any notable patterns among the top funders not obvious from the chart?"
             ]
@@ -158,10 +161,10 @@ def data_summary(df, grouped_df, selected_chart, selected_role, ai_enabled):
 
         st.divider()
 
-        st.write("""
+        st.markdown("""
         This page serves as a glimpse into insights you can uncover using GrantScope. Feel free to explore the other plots of the application by using the menu on the left. From there you can dive deeper into specific aspects of the grant data, such as analyzing trends over time or examining population distributions.
 
         Happy exploring and best of luck with your grant related endeavors!
 
-        This app was produced with Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solution such as Open ai GPT-4 and Claude Opus were used to generate portions of the source code.
+        This app was produced by [Christopher Collins](https://www.linkedin.com/in/cctopher/) using the latest methods to enable AI conversation with Data. It also uses the Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solutions such as OpenAI GPT-4 and Claude Opus were used to generate portions of the source code.
         """)

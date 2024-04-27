@@ -1,5 +1,4 @@
 import os
-import matplotlib.pyplot as plt
 import openai
 import tempfile
 from dotenv import load_dotenv
