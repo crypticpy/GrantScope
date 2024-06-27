@@ -4,7 +4,6 @@ plotly
 matplotlib
 wordcloud
 xlsxwriter
-langchain
 llama-index
 streamlit
 plotly-express
