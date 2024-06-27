@@ -15,7 +15,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Setup LlamaIndex with specific model and settings
 def setup_llama_index():
-    Settings.llm = OpenAI(temperature=0.2, model="gpt-4-turbo")
+    Settings.llm = OpenAI(temperature=0.2, model="gpt-4o")
 
 
 # Function to query data using LlamaIndex
