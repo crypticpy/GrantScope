@@ -3,7 +3,7 @@ from textwrap import shorten
 import plotly.express as px
 import streamlit as st
 
-from utils.utils import download_excel
+from utils.utils import download_excel, download_multi_sheet_excel
 
 
 def top_categories_unique_grants(df, grouped_df, selected_chart, selected_role, ai_enabled):
@@ -76,10 +76,12 @@ def top_categories_unique_grants(df, grouped_df, selected_chart, selected_role, 
                 st.write(f"No grants found for the selected category: {selected_category}")
 
         if st.button("Download Data for Chart"):
-            output = download_excel(normalized_counts, "grants_data_chart.xlsx", sheet_name='Top Categories')
-            output = download_excel(category_grants, "grants_data_chart.xlsx",
-                                    sheet_name='Grants for Selected Category', output=output)
-            st.markdown(output, unsafe_allow_html=True)
+            sheets = {
+                'Top Categories': normalized_counts,
+                'Grants for Selected Category': category_grants if 'category_grants' in locals() else normalized_counts.head(0)
+            }
+            href = download_multi_sheet_excel(sheets, "grants_data_chart.xlsx")
+            st.markdown(href, unsafe_allow_html=True)
 
         st.write("""
         We hope you find the Top Categories by Unique Grant Count page informative and helpful in exploring the distribution of grants across different categories. If you have any questions or suggestions, please don't hesitate to reach out.

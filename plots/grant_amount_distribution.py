@@ -1,24 +1,28 @@
 import plotly.express as px
 import streamlit as st
+import pandas as pd
 
-from loaders.llama_index_setup import query_data
-from utils.utils import download_excel, generate_page_prompt
+from utils.utils import download_excel, download_csv, generate_page_prompt
+from utils.chat_panel import chat_panel
 
 
 def grant_amount_distribution(df, grouped_df, selected_chart, selected_role, ai_enabled):
     """
-       Display and interact with the grant amount distribution visualization.
+    Display and interact with the grant amount distribution visualization.
 
-       Args:
-           df (pd.DataFrame): The original dataset DataFrame.
-           grouped_df (pd.DataFrame): The grouped dataset DataFrame.
-           selected_chart (str): The selected chart type.
-           selected_role (str): The selected user role.
-           ai_enabled (bool): Flag indicating whether AI-powered features are enabled.
+    Args:
+        df (pd.DataFrame): The original dataset DataFrame.
+        grouped_df (pd.DataFrame): The grouped dataset DataFrame.
+        selected_chart (str): The selected chart type.
+        selected_role (str): The selected user role.
+        ai_enabled (bool): Flag indicating whether AI-powered features are enabled.
 
-       Returns:
-           None
-       """
+    Returns:
+        None
+    """
+    # Guard clause
+    if selected_chart != "Grant Amount Distribution":
+        return
 
     # Display the header and description
     st.header("Grant Amount Distribution w AI Chat")
@@ -26,57 +30,95 @@ def grant_amount_distribution(df, grouped_df, selected_chart, selected_role, ai_
         Dive into the dynamic landscape of grant funding with our interactive distribution chart. This tool lets you visualize how grants are dispersed across various USD clusters, offering a clear view of funding trends and concentrations. Select different clusters to tailor the data shown and discover patterns at a glance.
         """)
 
+    # Validate required columns
+    req_cols = {"amount_usd_cluster", "amount_usd"}
+    if missing := sorted(req_cols - set(grouped_df.columns)):
+        st.error(f"Missing required columns: {', '.join(missing)}")
+        return
+
+    # Settings & filters
+    with st.expander("Distribution Settings", expanded=False):
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            metric = st.selectbox("Aggregate by", ["Total Amount", "Count"], index=0)
+        with col2:
+            top_n = st.slider("Top N clusters", min_value=3, max_value=30, value=15)
+        with col3:
+            log_y = st.toggle("Log scale (Y)", value=False)
+        with col4:
+            sort_dir = st.selectbox("Sort", ["Descending", "Ascending"], index=0)
+
     # Display visualizations
-    cluster_options = grouped_df['amount_usd_cluster'].unique().tolist()
+    cluster_options = grouped_df['amount_usd_cluster'].dropna().astype(str).unique().tolist()
+    cluster_options.sort()
+    if not cluster_options:
+        st.info("No cluster data available.")
+        return
     selected_clusters = st.multiselect("Select USD Clusters", options=cluster_options, default=cluster_options)
-    filtered_df = grouped_df[grouped_df['amount_usd_cluster'].isin(selected_clusters)]
-    fig = px.bar(filtered_df, x='amount_usd_cluster', y='amount_usd', color='amount_usd_cluster',
-                 title="Grant Amount Distribution by USD Cluster")
-    st.plotly_chart(fig)
+
+    # Work on a copy to avoid chained assignment issues
+    grouped_df = grouped_df.copy()
+    grouped_df['amount_usd_cluster'] = grouped_df['amount_usd_cluster'].astype(str)
+
+    @st.cache_data(show_spinner=False)
+    def _filter_clusters(gdf: pd.DataFrame, clusters: tuple[str, ...]) -> pd.DataFrame:
+        return gdf[gdf['amount_usd_cluster'].isin(list(clusters))]
+
+    filtered_df = _filter_clusters(grouped_df, tuple(selected_clusters)) if selected_clusters else grouped_df.iloc[0:0]
+
+    if filtered_df.empty:
+        st.info("No data for the selected clusters.")
+        return
+
+    # Aggregate (cached)
+    @st.cache_data(show_spinner=False)
+    def _aggregate_distribution(fdf: pd.DataFrame, metric: str) -> tuple[pd.DataFrame, str]:
+        if metric == "Total Amount":
+            agg_df = (
+                fdf.groupby('amount_usd_cluster', as_index=False)['amount_usd'].sum()
+                .rename(columns={"amount_usd": "value"})  # type: ignore[call-arg]
+            )
+            label = "Total Amount (USD)"
+        else:
+            agg_df = (
+                fdf.groupby('amount_usd_cluster', as_index=False)['grant_key'].count()
+                .rename(columns={"grant_key": "value"})  # type: ignore[call-arg]
+            )
+            label = "Grant Count"
+        return agg_df, label
+
+    agg, y_label = _aggregate_distribution(filtered_df, metric)
+
+    agg = agg.sort_values('value', ascending=(sort_dir == "Ascending")).head(int(top_n))
+
+    fig = px.bar(
+        agg,
+        x='amount_usd_cluster',
+        y='value',
+        color='amount_usd_cluster',
+        title=f"Grant Distribution by USD Cluster ({'Amount' if metric=='Total Amount' else 'Count'})",
+    )
+    fig.update_layout(xaxis_title='USD Cluster', yaxis_title=y_label, showlegend=False)
+    if log_y:
+        fig.update_yaxes(type='log')
+    st.plotly_chart(fig, use_container_width=True)
 
     if ai_enabled:
-
-        # AI Query Interface
-        st.subheader("Data Exploration with GPT-4 Assistant")
-        st.write("""
-                Unleash the power of AI to delve deeper into the data. Ask your questions using natural language and let GPT-4 AI assist you in uncovering nuanced insights and trends from the grant distribution chart.
-                """)
-
-        # Generate the custom prompt for the current page
         additional_context = "the distribution of grant amounts across different USD clusters"
         pre_prompt = generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context)
-
-        # Dropdown for predefined questions
-        query_options = [
-            "What is the average grant amount for each cluster?",
-            "What are the key takeaways from the grant amount distribution chart?",
-            "What are some other interesting insights we could make from this data?"
-        ]
-        selected_query = st.selectbox("Select a predefined question or choose 'Custom Question':",
-                                      ["Custom Question"] + query_options)
-
-        if selected_query == "Custom Question":
-            # Allow users to enter their own question
-            user_query = st.text_input("Enter your question here:")
-            query_text = user_query
-        else:
-            query_text = selected_query
-
-        # Button to submit query
-        if st.button("Submit"):
-            if query_text:
-                response = query_data(filtered_df, query_text, pre_prompt)
-                st.markdown(response)
-            else:
-                st.warning("Please enter a question or select a predefined question.")
-
+        chat_panel(filtered_df, pre_prompt, state_key="distribution_clusters", title="Distribution — AI Assistant")
     else:
-        # Inform the user that AI features are disabled
-        st.info("AI-assisted analysis is disabled. Please provide an API key to enable this feature.")
+        st.info("AI-assisted analysis is disabled. Provide an API key to enable this feature.")
 
-       # Button to download the data as an Excel file
-    if st.button("Download Data for Chart"):
-        download_excel(filtered_df, "grants_data_chart.xlsx")
+    # Downloads
+    dcol1, dcol2 = st.columns(2)
+    with dcol1:
+        if st.button("Download Aggregated Data (Excel)"):
+            download_excel(agg, "grants_distribution_agg.xlsx")
+    with dcol2:
+        if st.button("Download Filtered Rows (CSV)"):
+            link = download_csv(filtered_df, "grants_distribution_filtered.csv")
+            st.markdown(link, unsafe_allow_html=True)
 
     st.markdown(""" This app was produced by [Christopher Collins](https://www.linkedin.com/in/cctopher/) using the latest methods for enabling AI to Chat with Data. It also uses the Candid API, Streamlit, Plotly, and other open-source libraries. Generative AI solutions such as OpenAI GPT-4 and Claude Opus were used to generate portions of the source code.
                     """)

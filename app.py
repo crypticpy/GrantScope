@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import openai
 from loaders.data_loader import load_data, preprocess_data
+from utils.utils import build_sample_grants_json, download_text
 from plots.data_summary import data_summary
 from plots.grant_amount_distribution import grant_amount_distribution
 from plots.grant_amount_scatter_plot import grant_amount_scatter_plot
@@ -22,8 +23,6 @@ def init_session_state():
         clear_cache()
         st.session_state.cache_initialized = True
 
-uploaded_file = None
-
 st.set_page_config(page_title="GrantScope", page_icon=":chart_with_upwards_trend:")
 
 
@@ -33,6 +32,10 @@ def main():
     st.sidebar.markdown('<a href="mailto:dltzshz8@anonaddy.me">Contact the Developer!</a>', unsafe_allow_html=True)
     file_path = 'data/sample.json'
     uploaded_file = st.sidebar.file_uploader("Upload Candid API JSON File 10MB or less", accept_multiple_files=False, type="json")
+    with st.sidebar.expander("Sample & Schema", expanded=False):
+        st.caption("Expect a JSON object with a 'grants' array. Each grant should include core funder/recipient fields, amount_usd, year_issued, codes and translations for subject/population/strategy/transaction/geo, and description.")
+        if st.button("Download Sample JSON"):
+            download_text(build_sample_grants_json(), "sample_grants.json", mime="application/json")
 
     api_key = os.getenv("OPENAI_API_KEY")
 

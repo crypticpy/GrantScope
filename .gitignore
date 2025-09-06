@@ -2,3 +2,44 @@
 getcode.sh
 old/
 .idea/
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.swp
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Test & coverage artifacts
+.pytest_cache/
+.mypy_cache/
+.coverage*
+coverage.xml
+htmlcov/
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Local secrets & configs
+.env.local
+.python-version
+/.vscode/
+
+# Streamlit
+.streamlit/secrets.toml

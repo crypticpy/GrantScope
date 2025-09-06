@@ -3,17 +3,18 @@ from io import BytesIO
 
 import pandas as pd
 import streamlit as st
+import json
 
 
-def download_excel(df, filename):
+def download_excel(df, filename, sheet_name: str = 'Sheet1'):
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Sheet1')
-    writer.close()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
     output.seek(0)
     b64 = base64.b64encode(output.read()).decode()
     href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">Download Excel File</a>'
     st.markdown(href, unsafe_allow_html=True)
+    return href
 
 
 def download_csv(df, filename):
@@ -23,7 +24,7 @@ def download_csv(df, filename):
     return href
 
 
-def generate_page_prompt(df, grouped_df, selected_chart, selected_role, additional_context):
+def generate_page_prompt(df, _grouped_df, selected_chart, selected_role, additional_context):
     # Generate a list of available columns in the dataframes
     columns = ', '.join(df.columns)
 
@@ -73,3 +74,81 @@ def generate_page_prompt(df, grouped_df, selected_chart, selected_role, addition
     prompt += " The users prompt is:"
 
     return prompt
+
+
+def download_multi_sheet_excel(sheets: dict, filename: str):
+    """Create a single Excel file with multiple sheets from a dict of {sheet_name: df}.
+
+    Returns an href download link; also prints it via st.markdown for convenience.
+    """
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for name, df in sheets.items():
+            safe_name = str(name)[:31] if name else 'Sheet1'
+            df.to_excel(writer, index=False, sheet_name=safe_name)
+    output.seek(0)
+    b64 = base64.b64encode(output.read()).decode()
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">Download Excel File</a>'
+    st.markdown(href, unsafe_allow_html=True)
+    return href
+
+
+def download_text(content: str, filename: str, mime: str = "text/plain") -> str:
+    """Return a Streamlit download link for arbitrary text content.
+
+    Also renders the link via st.markdown; returns the href string for reuse.
+    """
+    b64 = base64.b64encode(content.encode()).decode()
+    href = f'<a href="data:{mime};base64,{b64}" download="{filename}">Download {filename}</a>'
+    st.markdown(href, unsafe_allow_html=True)
+    return href
+
+
+def build_sample_grants_json() -> str:
+    """Produce a minimal, valid sample grants JSON payload matching the expected schema."""
+    sample = {
+        "grants": [
+            {
+                "funder_key": "FUND-001",
+                "funder_profile_url": "https://example.org/funders/FUND-001",
+                "funder_name": "Example Foundation",
+                "funder_city": "New York",
+                "funder_state": "NY",
+                "funder_country": "USA",
+                "funder_type": "Foundation",
+                "funder_zipcode": "10001",
+                "funder_country_code": "US",
+                "funder_ein": "12-3456789",
+                "funder_gs_profile_update_level": "basic",
+                "recip_key": "RECIP-001",
+                "recip_name": "Community Org",
+                "recip_city": "Austin",
+                "recip_state": "TX",
+                "recip_country": "USA",
+                "recip_zipcode": "73301",
+                "recip_country_code": "US",
+                "recip_ein": "98-7654321",
+                "recip_organization_code": "NPO",
+                "recip_organization_tran": "Nonprofit",
+                "recip_gs_profile_link": "https://example.org/recipients/RECIP-001",
+                "recip_gs_profile_update_level": "basic",
+                "grant_key": "GRANT-0001",
+                "amount_usd": 250000,
+                "grant_subject_code": "EDU;HLTH",
+                "grant_subject_tran": "Education;Health",
+                "grant_population_code": "YOUTH",
+                "grant_population_tran": "Youth",
+                "grant_strategy_code": "CAP",
+                "grant_strategy_tran": "Capacity Building",
+                "grant_transaction_code": "NEW",
+                "grant_transaction_tran": "New Grant",
+                "grant_geo_area_code": "TX;US",
+                "grant_geo_area_tran": "Texas;United States",
+                "year_issued": "2023",
+                "grant_duration": "12",
+                "grant_description": "Support for expanding youth education programs.",
+                "last_updated": "2024-12-31"
+            }
+        ]
+    }
+    return json.dumps(sample, indent=2)
